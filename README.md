@@ -20,11 +20,14 @@ drift between independently-maintained copies.
 | `identity` | Keyless signer-identity canonicalization (`CanonicalKeylessIdentity`) — the load-bearing invariant the hub TOFU-pins and producers re-derive. **Its output is frozen contract.** |
 | `mediatype` | OCI media types (plugin config/binary, Sigstore bundle) + the referrer artifactType note. |
 | `apierror` | The `{error, detail}` envelope and the stable error-code vocabulary. |
-| `plugin` | The signed plugin config-blob schema. |
+| `pluginspec` | The signed plugin config-blob schema. |
 | `discovery` | The `/.well-known/ext.grc-store` document. |
 | `registrytoken` | The `GET /v2/token` response. |
-| `sync` | The sync request body (`{repository, tag}`). |
+| `syncapi` | The sync request + response shapes. |
 | `limits` | Producer-facing size limits. |
+
+> `pluginspec` and `syncapi` are deliberately *not* named `plugin`/`sync` — those
+> would shadow the standard library's `plugin` and `sync` packages in consumers.
 
 ## Usage
 
@@ -32,7 +35,7 @@ drift between independently-maintained copies.
 import (
 	"github.com/revanite-io/grc-store-protocol/identity"
 	"github.com/revanite-io/grc-store-protocol/apierror"
-	"github.com/revanite-io/grc-store-protocol/plugin"
+	"github.com/revanite-io/grc-store-protocol/pluginspec"
 )
 
 // Canonicalize a keyless signer identity for TOFU comparison (compare-only,
@@ -45,7 +48,7 @@ _ = json.Unmarshal(body, &env)
 if env.Error == apierror.PluginSignerMismatch { /* ... */ }
 
 // Build the signed plugin config descriptor.
-cfg := plugin.Config{Plugin: "<ns>/<plugin_id>", Version: tag /* == index tag */, /* ... */}
+cfg := pluginspec.Config{Plugin: "<ns>/<plugin_id>", Version: tag /* == index tag */, /* ... */}
 ```
 
 ## Scope notes

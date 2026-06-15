@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package plugin is the plugin config-blob schema (mediatype.PluginConfig) —
+// Package pluginspec is the plugin config-blob schema (mediatype.PluginConfig) —
 // the signed descriptor a bare binary can't self-carry (ADR-0034 decision 2).
 // It is the producer↔hub shared type: the publisher (pvtr) writes and signs it;
-// the hub reads it as the authoritative source on sync.
-package plugin
+// the hub reads it as the authoritative source on sync. (Named pluginspec, not
+// plugin, so it does not shadow the standard library's plugin package.)
+package pluginspec
 
 // Config is one plugin config blob, one per child image manifest. Platform is
 // per-child; Plugin, Version, Entrypoint, Protocol, and Evaluates describe the
