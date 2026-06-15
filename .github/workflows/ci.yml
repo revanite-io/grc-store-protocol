@@ -23,5 +23,17 @@ jobs:
           go-version: ${{ matrix.go }}
       - run: go vet ./...
       - run: test -z "$(gofmt -l .)" || { echo 'gofmt:'; gofmt -l .; exit 1; }
-      - run: go mod tidy && git diff --exit-code go.mod go.sum
+      - name: tidy + enforce zero dependencies
+        # This module is dependency-free by design (contract, not client). go mod
+        # tidy must be a no-op; if it writes go.mod or creates a go.sum, a
+        # dependency snuck in. Uses git status (not `git diff <path>`, which
+        # fatals on a not-yet-existing go.sum).
+        run: |
+          go mod tidy
+          changed="$(git status --porcelain go.mod go.sum)"
+          if [ -n "$changed" ]; then
+            echo "::error::go.mod/go.sum changed by 'go mod tidy' — this module must stay dependency-free:"
+            echo "$changed"
+            exit 1
+          fi
       - run: go test ./... -count=1
