@@ -25,6 +25,7 @@ drift between independently-maintained copies.
 | `registrytoken` | The `GET /v2/token` response. |
 | `syncapi` | The sync request + response shapes. |
 | `limits` | Producer-facing size limits. |
+| `spdx` | SPDX license-expression validation + canonicalization for the publication-license field (ADR-0036). grcli is strict (`Canonicalize`); the hub is lenient (`Parse`/`String`). |
 
 > `pluginspec` and `syncapi` are deliberately *not* named `plugin`/`sync` — those
 > would shadow the standard library's `plugin` and `sync` packages in consumers.
