@@ -16,7 +16,16 @@ type Config struct {
 	// is rejected (apierror.PluginCoordinateMismatch).
 	Plugin string `json:"plugin"`
 	// Version must equal the index tag (else apierror.TagVersionMismatch).
-	Version    string     `json:"version"`
+	Version string `json:"version"`
+	// License is the publication license as an SPDX expression (ADR-0037),
+	// required and enforced by the hub (else apierror.LicenseRequired). It lives
+	// here on the SIGNED config — NOT in an OCI annotation — because ADR-0034
+	// decision 6 makes the signed config the sole source of truth for plugin
+	// metadata (catalog bundles carry license in the annotation instead; only the
+	// plugin path is signed-config-bound). Like Plugin/Version/etc. it describes
+	// the plugin as a whole and must agree across every child. Validate with
+	// grc-store-protocol/spdx; use a LicenseRef-… token for custom licenses.
+	License    string     `json:"license"`
 	Platform   Platform   `json:"platform"`
 	Entrypoint string     `json:"entrypoint"`
 	Protocol   string     `json:"protocol"`

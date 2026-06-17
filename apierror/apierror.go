@@ -33,6 +33,18 @@ const (
 	MalformedIndex             = "malformed_index"              // 422 — bad child media types / missing layers / empty evaluates
 	RegistryNotAllowed         = "registry_not_allowed"         // 400 — repository not the <ns>/plugins/<id> shape
 
+	// Publication-license requirement (ADR-0037) — shared across the catalog/bundle
+	// sync path and the plugin sync path; the carrier differs (catalog bundles use
+	// the org.opencontainers.image.licenses OCI annotation; plugins use the signed
+	// pluginspec.Config.License field), the code does not. Rejected when a license
+	// is absent or not a well-formed SPDX expression; a well-formed-but-unknown id
+	// is accepted (no version-skew false-reject). To resolve: declare an SPDX
+	// expression — see https://spdx.org/licenses — or a LicenseRef-… token for a
+	// custom/proprietary license. 422 (the bundle parsed and is otherwise valid but
+	// violates the license precondition), consistent with the policy-precondition
+	// reading of the 422 codes above rather than the field-shape 400s.
+	LicenseRequired = "license_required" // 422 — no valid publication license declared
+
 	// Shared transport / drift codes.
 	CoordinateMismatch = "coordinate_mismatch" // 400 — request body repository != URL coordinate
 	Forbidden          = "forbidden"           // 403 — caller lacks ownership / write authority
