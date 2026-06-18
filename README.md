@@ -21,7 +21,7 @@ drift between independently-maintained copies.
 | `mediatype` | OCI media types (plugin config/binary, Sigstore bundle) + the referrer artifactType note. |
 | `apierror` | The `{error, detail}` envelope and the stable error-code vocabulary. |
 | `pluginspec` | The signed plugin config-blob schema. |
-| `discovery` | The `/.well-known/ext.grc-store` document. |
+| `discovery` | The `/.well-known/grc-store-configuration` document. |
 | `registrytoken` | The `GET /v2/token` response. |
 | `syncapi` | The sync request + response shapes. |
 | `limits` | Producer-facing size limits. |

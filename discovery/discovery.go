@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
-// Package discovery is the GET /.well-known/ext.grc-store document — the
+// Package discovery is the GET /.well-known/grc-store-configuration document — the
 // coordinates a client reads to talk to a hub (registry, OIDC, CI audience)
 // instead of hard-coding them.
 package discovery
