@@ -33,6 +33,16 @@ const (
 	MalformedIndex             = "malformed_index"              // 422 — bad child media types / missing layers / empty evaluates
 	RegistryNotAllowed         = "registry_not_allowed"         // 400 — repository not the <ns>/plugins/<id> shape
 
+	// Catalog publish / sync path (ADR-0045). The catalog analogue of the
+	// plugin codes above: the hub verifies a catalog bundle's Sigstore
+	// signature (discovered as an OCI referrer of the bundle) at ingest and
+	// TOFU-pins the canonical signer identity per (namespace, catalog_id).
+	// Same reject matrix, same 422 status, same identity scheme as plugins —
+	// one trust model across both artifact kinds.
+	CatalogUnsigned           = "catalog_unsigned"            // 422 — no signature referrer found on the bundle
+	CatalogVerificationFailed = "catalog_verification_failed" // 422 — signature present but invalid / fail-closed trust error
+	CatalogSignerMismatch     = "catalog_signer_mismatch"     // 422 — signer identity disagrees with the TOFU-pinned one
+
 	// Publication-license requirement (ADR-0037) — shared across the catalog/bundle
 	// sync path and the plugin sync path; the carrier differs (catalog bundles use
 	// the org.opencontainers.image.licenses OCI annotation; plugins use the signed

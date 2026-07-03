@@ -2,7 +2,10 @@
 
 package identity
 
-import "testing"
+import (
+	"errors"
+	"testing"
+)
 
 // TestCanonicalKeylessIdentity_FieldValidated pins the exact string produced on
 // the real preview publish that the hub and pvtr independently agreed on
@@ -67,6 +70,104 @@ func TestCanonicalKeylessIdentity_DegenerateInputs(t *testing.T) {
 	for _, c := range cases {
 		if got := CanonicalKeylessIdentity(c.issuer, c.san); got != c.want {
 			t.Errorf("%s: got %q, want %q", c.name, got, c.want)
+		}
+	}
+}
+
+func TestParseKeyless(t *testing.T) {
+	cases := []struct {
+		name             string
+		in               string
+		wantIssuer       string
+		wantWorkflowPath string
+		wantErr          error
+	}{
+		{
+			name:             "canonical GHA identity",
+			in:               "keyless:https://token.actions.githubusercontent.com#https://github.com/acme/p/.github/workflows/release.yml",
+			wantIssuer:       "https://token.actions.githubusercontent.com",
+			wantWorkflowPath: "https://github.com/acme/p/.github/workflows/release.yml",
+		},
+		{
+			name:    "unknown scheme (key-based identity)",
+			in:      "key:sha256:abcdef",
+			wantErr: ErrUnknownScheme,
+		},
+		{
+			name:    "unknown scheme (bare string)",
+			in:      "not-an-identity",
+			wantErr: ErrUnknownScheme,
+		},
+		{
+			name:    "keyless but no separator",
+			in:      "keyless:https://iss-only-no-hash",
+			wantErr: ErrMissingSeparator,
+		},
+		{
+			// Splitting at the FIRST '#' means a workflow path containing a
+			// later '#' stays intact on the right — pinned so the split point
+			// is a contract, not an accident.
+			name:             "splits at the first '#' only",
+			in:               "keyless:https://iss#https://github.com/o/r/.github/workflows/w.yml#frag",
+			wantIssuer:       "https://iss",
+			wantWorkflowPath: "https://github.com/o/r/.github/workflows/w.yml#frag",
+		},
+		{
+			// Degenerate but well-formed: empty issuer / empty path round-trip
+			// with the CanonicalKeylessIdentity degenerate cases above.
+			name:             "empty issuer",
+			in:               "keyless:#https://x/.github/workflows/w.yml",
+			wantIssuer:       "",
+			wantWorkflowPath: "https://x/.github/workflows/w.yml",
+		},
+		{
+			name:             "empty workflow path",
+			in:               "keyless:https://iss#",
+			wantIssuer:       "https://iss",
+			wantWorkflowPath: "",
+		},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			issuer, workflowPath, err := ParseKeyless(c.in)
+			if c.wantErr != nil {
+				if !errors.Is(err, c.wantErr) {
+					t.Fatalf("ParseKeyless(%q) err = %v, want %v", c.in, err, c.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("ParseKeyless(%q) unexpected err = %v", c.in, err)
+			}
+			if issuer != c.wantIssuer || workflowPath != c.wantWorkflowPath {
+				t.Errorf("ParseKeyless(%q) = (%q, %q), want (%q, %q)",
+					c.in, issuer, workflowPath, c.wantIssuer, c.wantWorkflowPath)
+			}
+		})
+	}
+}
+
+// TestParseKeyless_RoundTripsCanonical is the load-bearing guard: ParseKeyless
+// must be the exact inverse of CanonicalKeylessIdentity for any issuer without a
+// '#' (every real OIDC issuer). The workflow path comes back ref-stripped
+// because canonicalization strips the "@refs/..." suffix before joining.
+func TestParseKeyless_RoundTripsCanonical(t *testing.T) {
+	cases := []struct{ issuer, san string }{
+		{"https://token.actions.githubusercontent.com", "https://github.com/acme/p/.github/workflows/release.yml@refs/tags/v1.2.3"},
+		{"https://token.actions.githubusercontent.com", "https://github.com/finos/ccc-evaluator/.github/workflows/release.yml"},
+		{"https://gitlab.example/oidc", "https://gitlab.example/g/p//.gitlab-ci.yml@refs/heads/main"},
+	}
+	for _, c := range cases {
+		canonical := CanonicalKeylessIdentity(c.issuer, c.san)
+		issuer, workflowPath, err := ParseKeyless(canonical)
+		if err != nil {
+			t.Fatalf("ParseKeyless(%q) err = %v", canonical, err)
+		}
+		if issuer != c.issuer {
+			t.Errorf("round-trip issuer = %q, want %q", issuer, c.issuer)
+		}
+		if want := StripWorkflowRef(c.san); workflowPath != want {
+			t.Errorf("round-trip workflowPath = %q, want %q (ref-stripped)", workflowPath, want)
 		}
 	}
 }
