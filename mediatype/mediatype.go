@@ -42,4 +42,12 @@ const (
 	// artifactTypes to artifact KINDS. Its premise — that catalogs are always
 	// signed by cosign 2.x — broke when cosign 3.x made the bundle format the
 	// default and changed the stamp.)
+
+	// ProvenanceBundle is the referrer artifactType (and layer media type) of a
+	// SIGNED PROVENANCE attestation: a Sigstore v0.3 bundle whose DSSE in-toto
+	// statement carries a SLSA v1 predicate over the same subject digest as the
+	// signature. It is deliberately distinct from the two signature types above
+	// so signature discovery, which filters on those and takes the first match,
+	// can never pick up the provenance referrer as the signature.
+	ProvenanceBundle = "application/vnd.grc-store.provenance.bundle.v0.3+json"
 )
