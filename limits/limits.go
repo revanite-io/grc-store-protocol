@@ -18,10 +18,11 @@ const MaxPluginBlobBytes = 4 << 20 // 4 MiB
 // rejected (422 apierror.EvaluationLogTooLarge) BEFORE the body is parsed.
 //
 // 16 MiB, because a log is unbounded producer output that anyone owning a
-// verified target can publish at every scan, and every accepted byte is
-// stored twice (the OCI blob in R2, the indexed body in Postgres) for the
-// lifetime of an immutable version — so the cap bounds both storage cost and
-// the write-amplification an abusive or runaway pipeline can cause. 16 MiB is
+// verified target can publish at every scan, and every accepted byte is stored
+// in R2 for the lifetime of an immutable version and parsed in full at ingest
+// (the hub indexes coordinates and a rollup, not the body) — so the cap bounds
+// both storage cost and the work an abusive or runaway pipeline can cause.
+// 16 MiB is
 // ~4x the largest real pvtr log seen (a full-catalog run with per-step
 // messages); a producer that hits it should split by catalog, which the
 // results coordinate (one stream per target × catalog) already does.
