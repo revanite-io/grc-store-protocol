@@ -55,6 +55,25 @@ const (
 	// reading of the 422 codes above rather than the field-shape 400s.
 	LicenseRequired = "license_required" // 422 — no valid publication license declared
 
+	// EvaluationLog publish / sync path. Results ride the bundle
+	// path (ADR-0034 d.10), so a log is ALSO subject to every bundle code above
+	// — catalog_unsigned / catalog_verification_failed / license_required /
+	// tag_version_mismatch / catalog_coordinate_mismatch — plus these. All are
+	// 422 (the bundle parsed; a relationship or precondition is violated), the
+	// same reading as tag_version_mismatch. The namespace is the publish
+	// coordinate's, authorized by ownership (403 forbidden); the codes below are
+	// the cross-checks between the log's own claims and the hub's verified state.
+	TargetNotFound              = "target_not_found"               // 422 — log.target names no registered, non-archived target in the publishing namespace
+	TargetNotVerified           = "target_not_verified"            // 422 — the target exists but its ownership has not been verified
+	TargetNotOwned              = "target_not_owned"               // 422 — log.target's namespace is not the namespace the bundle was published to
+	EvaluationLogTargetMismatch = "evaluation_log_target_mismatch" // 422 — log.target is not a usable hub coordinate (id not <ns>/<slug>, version empty) or metadata.version does not start with "<target.version>-"
+	EvaluatorUnpublished        = "evaluator_unpublished"          // 422 — metadata.author.id is a hub plugin coordinate (slug.IsHubPluginCoordinate) but no published plugin matches the signed provenance digest
+	EvaluationLogTooLarge       = "evaluation_log_too_large"       // 422 — bundle exceeds limits.MaxEvaluationLogBundleBytes
+	EvaluationLogSignerMismatch = "evaluation_log_signer_mismatch" // 422 — signer identity disagrees with the TOFU-pinned one for this results stream (the log flavor of catalog/plugin_signer_mismatch)
+
+	// Target registry: POST /v1/targets/{ns}/{id}/verify.
+	TargetVerificationFailed = "target_verification_failed" // 422 — the ownership proof did not match (OIDC repository claim, DNS TXT, or well-known body disagrees with the target / challenge)
+
 	// Shared transport / drift codes.
 	CoordinateMismatch = "coordinate_mismatch" // 400 — request body repository != URL coordinate
 	Forbidden          = "forbidden"           // 403 — caller lacks ownership / write authority
