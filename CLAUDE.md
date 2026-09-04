@@ -17,6 +17,7 @@ belong here. `README.md` is the full contract overview + package glossary — po
 - `discovery` — `/.well-known/grc-store-configuration` document
 - `identity` — keyless signer-identity canonicalization **(frozen — see gotcha)**
 - `limits` — producer-facing size limits (e.g. `MaxPluginBlobBytes = 4 MiB`)
+- `slug` — the hub coordinate slug rule (`Slugify`, frozen) + EvaluationLog results coordinate helpers
 - `mediatype` — OCI media types (plugin config/binary, Sigstore bundle)
 - `pluginspec` — plugin config-blob schema · `registrytoken` — `GET /v2/token` response
 - `spdx` — license-expression validation + canonicalization (ADR-0036) · `syncapi` — sync request/response shapes
