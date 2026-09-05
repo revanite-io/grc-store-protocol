@@ -48,16 +48,15 @@ func EvaluationLogVersion(targetVersion string, runAt time.Time) string {
 }
 
 // IsHubPluginCoordinate reports whether an EvaluationLog's metadata.author.id
-// names a hub plugin coordinate — "<namespace>/<plugin-id>" — and therefore
-// MUST resolve to a published plugin at the provenance-declared digest for the
-// hub to accept the log (the conditionally fail-closed producer
-// gate). The rule is exact, so it cannot become an accidental bypass:
+// names a hub plugin coordinate — "<namespace>/<plugin-id>". The hub accepts
+// a log only when this is true AND the coordinate resolves, through the signed
+// provenance, to a published plugin at the declared digest (ADR-0055); a
+// producer uses it to refuse a log the hub would reject. The rule is exact:
 //
 //	exactly two '/'-separated segments, each non-empty and IsSlug.
 //
-// So "local/my-plugin" IS a coordinate (and fails closed when unpublished);
-// "acme-scanner", "https://…", "Acme/Scanner" (uppercase) and "a/b/c" are NOT,
-// and are accepted with the producer marked unverified.
+// So "local/my-plugin" IS a coordinate (and fails at the hub when unpublished);
+// "acme-scanner", "https://…", "Acme/Scanner" (uppercase) and "a/b/c" are NOT.
 func IsHubPluginCoordinate(authorID string) bool {
 	ns, id, found := strings.Cut(authorID, "/")
 	return found && IsSlug(ns) && IsSlug(id) // IsSlug(id) fails on a further '/'

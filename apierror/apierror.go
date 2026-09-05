@@ -60,16 +60,30 @@ const (
 	// — catalog_unsigned / catalog_verification_failed / license_required /
 	// tag_version_mismatch / catalog_coordinate_mismatch — plus these. All are
 	// 422 (the bundle parsed; a relationship or precondition is violated), the
-	// same reading as tag_version_mismatch. The namespace is the publish
-	// coordinate's, authorized by ownership (403 forbidden); the codes below are
-	// the cross-checks between the log's own claims and the hub's verified state.
+	// same reading as tag_version_mismatch, except results_ingest_disabled
+	// (501). The namespace is the publish coordinate's, authorized by
+	// ownership (403 forbidden); the codes below are the cross-checks between
+	// the log's own claims and the hub's verified state, then the hub ADR-0055
+	// acceptance decision: a log is stored only when its Sigstore certificate
+	// names the operator-configured pvtr-publish-results workflow release on a
+	// GitHub-hosted runner, the bearer is that run, and signed provenance binds
+	// it to a published plugin digest. There is no unverified tier.
 	TargetNotFound              = "target_not_found"               // 422 — log.target names no registered, non-archived target in the publishing namespace
 	TargetNotVerified           = "target_not_verified"            // 422 — the target exists but its ownership has not been verified
 	TargetNotOwned              = "target_not_owned"               // 422 — log.target's namespace is not the namespace the bundle was published to
 	EvaluationLogTargetMismatch = "evaluation_log_target_mismatch" // 422 — log.target is not a usable hub coordinate (id not <ns>/<slug>, version empty) or metadata.version does not start with "<target.version>-"
-	EvaluatorUnpublished        = "evaluator_unpublished"          // 422 — metadata.author.id is a hub plugin coordinate (slug.IsHubPluginCoordinate) but no published plugin matches the signed provenance digest
+	EvaluatorUnpublished        = "evaluator_unpublished"          // 422 — metadata.author.id is not a hub plugin coordinate, differs from the provenance's evaluator, or no published+signed+live plugin exists at the provenance digest
 	EvaluationLogTooLarge       = "evaluation_log_too_large"       // 422 — bundle exceeds limits.MaxEvaluationLogBundleBytes
-	EvaluationLogSignerMismatch = "evaluation_log_signer_mismatch" // 422 — signer identity disagrees with the TOFU-pinned one for this results stream (the log flavor of catalog/plugin_signer_mismatch)
+	ResultsIngestDisabled       = "results_ingest_disabled"        // 501 — the hub has no results trust root (HUB_RESULTS_TRUST_ROOT) or no verifier; every results publish is refused
+	ResultsSignerUntrusted      = "results_signer_untrusted"       // 422 — certificate issuer is not GitHub Actions, SAN != the configured job_workflow_ref (ref included), or the runner is not github-hosted
+	ResultsCallerMismatch       = "results_caller_mismatch"        // 422 — the bearer is not a GitHub Actions OIDC token, or its repository/ref differ from the certificate's caller repository/ref
+	ResultsProvenanceMissing    = "results_provenance_missing"     // 422 — no mediatype.ProvenanceBundle referrer on the bundle manifest
+	ResultsProvenanceInvalid    = "results_provenance_invalid"     // 422 — provenance fails verification, was not minted by the run that signed the log, or its subject/predicate/target disagree with the log
+
+	// Deprecated: never emitted since ADR-0055 — results streams carry no
+	// TOFU signer pin; the signer is fixed by HUB_RESULTS_TRUST_ROOT. Kept so
+	// v0.6.0 importers compile.
+	EvaluationLogSignerMismatch = "evaluation_log_signer_mismatch"
 
 	// Target registry: POST /v1/targets/{ns}/{id}/verify.
 	TargetVerificationFailed = "target_verification_failed" // 422 — the ownership proof did not match (OIDC repository claim, DNS TXT, or well-known body disagrees with the target / challenge)
