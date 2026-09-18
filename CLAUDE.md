@@ -18,6 +18,7 @@ belong here. `README.md` is the full contract overview + package glossary — po
 - `identity` — keyless signer-identity canonicalization **(frozen — see gotcha)**
 - `limits` — producer-facing size limits (e.g. `MaxPluginBlobBytes = 4 MiB`)
 - `slug` — the hub coordinate slug rule (`Slugify`, frozen) + EvaluationLog results coordinate helpers
+- `refurl` — the "does this url name a hub artifact" rule (`Parse` → namespace/id/version, `IsGrcStoreHost`); hub index, grcli and the frontend mirror all follow its table test
 - `mediatype` — OCI media types (plugin config/binary, Sigstore bundle)
 - `pluginspec` — plugin config-blob schema · `registrytoken` — `GET /v2/token` response
 - `spdx` — license-expression validation + canonicalization (ADR-0036) · `syncapi` — sync request/response shapes

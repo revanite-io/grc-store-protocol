@@ -26,6 +26,7 @@ drift between independently-maintained copies.
 | `syncapi` | The sync request + response shapes. |
 | `limits` | Producer-facing size limits. |
 | `slug` | **The** hub coordinate slug rule (`Slugify`/`IsSlug`, a byte-for-byte port of the hub's) plus the EvaluationLog results coordinate helpers (`EvaluationLogRepository`, `EvaluationLogVersion`, `IsHubPluginCoordinate`). **`Slugify`'s output is frozen contract.** |
+| `refurl` | **The** "does this mapping-reference url name a hub artifact" rule (`Parse`, `IsGrcStoreHost`): the hub API path on any host, the UI path `/<ns>/<id>` and the legacy `/search/<ns>/<id>` path on a grc.store host, segments slugified. Shared by the hub index, grcli and the web UI mirror (REV-382). |
 | `spdx` | SPDX license-expression validation + canonicalization for the publication-license field (ADR-0036). grcli is strict (`Canonicalize`); the hub is lenient (`Parse`/`String`). |
 
 > `pluginspec` and `syncapi` are deliberately *not* named `plugin`/`sync` — those
