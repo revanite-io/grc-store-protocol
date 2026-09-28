@@ -38,8 +38,9 @@ type CredentialStatus struct {
 const (
 	ArtifactTypeControlCatalog = "ControlCatalog"
 
-	FieldDescription      = "description"       // ControlCatalog metadata.description
-	FieldControlObjective = "control.objective" // one control's objective
+	FieldDescription           = "description"                 // ControlCatalog metadata.description
+	FieldControlObjective      = "control.objective"           // one control's objective
+	FieldAssessmentRequirement = "assessment-requirement.text" // one assessment requirement's text
 
 	ModeGenerate = "generate" // Current is empty: write the field from Context
 	ModePolish   = "polish"   // Current has text: improve it, keeping its meaning
@@ -47,7 +48,7 @@ const (
 
 // ValidField reports whether field is one the hub has a template for.
 func ValidField(field string) bool {
-	return field == FieldDescription || field == FieldControlObjective
+	return field == FieldDescription || field == FieldControlObjective || field == FieldAssessmentRequirement
 }
 
 // ValidMode reports whether mode is generate or polish.
@@ -55,7 +56,8 @@ func ValidMode(mode string) bool { return mode == ModeGenerate || mode == ModePo
 
 // PolishRequest is the body of POST /v1/ai/polish. Context's shape depends
 // on Field: DescriptionContext for FieldDescription, ObjectiveContext for
-// FieldControlObjective. Nothing in it is persisted or logged by the hub.
+// FieldControlObjective, RequirementContext for FieldAssessmentRequirement.
+// Nothing in it is persisted or logged by the hub.
 type PolishRequest struct {
 	ArtifactType string          `json:"artifact_type"`
 	Field        string          `json:"field"`
@@ -97,7 +99,8 @@ type DescriptionContext struct {
 	Controls []ControlSummary `json:"controls,omitempty"`
 }
 
-// Requirement is one assessment requirement of the control being written.
+// Requirement is one assessment requirement: the control's own in an
+// ObjectiveContext, a sibling in a RequirementContext.
 type Requirement struct {
 	ID            string   `json:"id"`
 	Text          string   `json:"text"`
@@ -120,4 +123,32 @@ type ObjectiveContext struct {
 	} `json:"control"`
 	Requirements []Requirement    `json:"requirements,omitempty"`
 	Siblings     []ControlSummary `json:"siblings,omitempty"`
+}
+
+// RequirementContext is PolishRequest.Context for FieldAssessmentRequirement,
+// the inverse of ObjectiveContext: the parent control's objective is the
+// content source and Siblings, every other non-blank requirement (the same
+// control's first, then the rest of the catalog's), are the style pattern.
+// The row being written never appears in Siblings; its own text travels as
+// PolishRequest.Current. ApplicabilityGroups is the catalog's authored
+// applicability list so an ID like "tlp-amber" reads as a scope. Clients cap
+// Siblings so a large catalog stays inside limits.MaxAIPolishRequestBytes.
+type RequirementContext struct {
+	Catalog struct {
+		Title       string `json:"title"`
+		Description string `json:"description,omitempty"`
+	} `json:"catalog"`
+	Control struct {
+		ID        string `json:"id"`
+		Title     string `json:"title"`
+		Objective string `json:"objective,omitempty"`
+		Group     string `json:"group,omitempty"`
+	} `json:"control"`
+	Requirement struct {
+		ID             string   `json:"id,omitempty"`
+		Applicability  []string `json:"applicability,omitempty"`
+		Recommendation string   `json:"recommendation,omitempty"`
+	} `json:"requirement"`
+	Siblings            []Requirement `json:"siblings,omitempty"`
+	ApplicabilityGroups []Group       `json:"applicability_groups,omitempty"`
 }
