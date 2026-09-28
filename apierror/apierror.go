@@ -88,6 +88,18 @@ const (
 	// Target registry: POST /v1/targets/{ns}/{id}/verify.
 	TargetVerificationFailed = "target_verification_failed" // 422 — the ownership proof did not match (OIDC repository claim, DNS TXT, or well-known body disagrees with the target / challenge)
 
+	// AI-assisted drafting (hub ADR-0059): the per-user provider credential
+	// (/v1/me/ai-credential) and POST /v1/ai/polish. The hub makes the
+	// provider call with the caller's own stored token; these codes tell the
+	// client which side to fix. Every route is hub-admin only for now (the
+	// drafting flow's gate), so 401/403 there are the usual unauthorized /
+	// forbidden.
+	AINotEnabled          = "ai_not_enabled"          // 501 — the hub has no credential-encryption key (AI_CREDENTIAL_KEY); nothing AI-related is available
+	AICredentialMissing   = "ai_credential_missing"   // 412 — the caller has not stored a provider token; add one on the settings page
+	AIProviderRejected    = "ai_provider_rejected"    // 422 — the provider refused the stored token (401/403 upstream); rotate it
+	AIProviderUnavailable = "ai_provider_unavailable" // 502 — the provider errored, timed out or returned an unusable body
+	AIContextTooLarge     = "ai_context_too_large"    // 413 — request exceeds limits.MaxAIPolishRequestBytes or MaxAIPolishCurrentBytes
+	AIRateLimited         = "ai_rate_limited"         // 429 — the caller's per-user polish budget is spent; wait a moment
 	// Shared transport / drift codes.
 	CoordinateMismatch = "coordinate_mismatch" // 400 — request body repository != URL coordinate
 	Forbidden          = "forbidden"           // 403 — caller lacks ownership / write authority

@@ -27,3 +27,20 @@ const MaxPluginBlobBytes = 4 << 20 // 4 MiB
 // messages); a producer that hits it should split by catalog, which the
 // results coordinate (one stream per target × catalog) already does.
 const MaxEvaluationLogBundleBytes = 16 << 20 // 16 MiB
+
+// MaxAICredentialTokenBytes caps the provider token a user stores with
+// PUT /v1/me/ai-credential. Real keys are a few hundred bytes; anything
+// past this is not a key.
+const MaxAICredentialTokenBytes = 1 << 10 // 1 KiB
+
+// MaxAIPolishRequestBytes caps the whole POST /v1/ai/polish body (the
+// context included) and MaxAIPolishCurrentBytes the field text being
+// polished. Over either the hub answers 413 apierror.AIContextTooLarge
+// before touching the provider. A control catalog's title, groups and
+// control objectives fit in a few KiB; the caps leave room for large
+// catalogs while bounding what one call can send upstream on the user's
+// own token.
+const (
+	MaxAIPolishRequestBytes = 64 << 10 // 64 KiB
+	MaxAIPolishCurrentBytes = 8 << 10  // 8 KiB
+)
