@@ -11,8 +11,12 @@ func TestValidators(t *testing.T) {
 	if !ValidProvider(ProviderAnthropic) || ValidProvider("openai") || ValidProvider("") {
 		t.Error("ValidProvider: only anthropic is accepted today")
 	}
-	if !ValidArtifactType(ArtifactTypeControlCatalog) || !ValidArtifactType(ArtifactTypeThreatCatalog) || ValidArtifactType("Policy") || ValidArtifactType("") {
-		t.Error("ValidArtifactType: ControlCatalog and ThreatCatalog only")
+	if !ValidArtifactType(ArtifactTypeControlCatalog) || !ValidArtifactType(ArtifactTypeThreatCatalog) || !ValidArtifactType(ArtifactTypeGuidanceCatalog) || ValidArtifactType("Policy") || ValidArtifactType("") {
+		t.Error("ValidArtifactType: ControlCatalog, ThreatCatalog and GuidanceCatalog only")
+	}
+	gc := ArtifactTypeGuidanceCatalog
+	if !ValidField(gc, FieldDescription) || !ValidField(gc, FieldGuidelineObjective) || !ValidField(gc, FieldStatementText) || ValidField(gc, FieldControlObjective) || ValidField(ArtifactTypeControlCatalog, FieldStatementText) {
+		t.Error("ValidField(GuidanceCatalog): description, guideline.objective and statement.text only")
 	}
 	cc, tc := ArtifactTypeControlCatalog, ArtifactTypeThreatCatalog
 	if !ValidField(cc, FieldDescription) || !ValidField(cc, FieldControlObjective) || !ValidField(cc, FieldAssessmentRequirement) || ValidField(cc, "title") || ValidField(cc, FieldThreatDescription) {
@@ -82,6 +86,9 @@ func TestValidReview(t *testing.T) {
 	if !ValidReview(ArtifactTypeControlCatalog, ReviewEntries) {
 		t.Error("ValidReview(ControlCatalog): entries")
 	}
+	if !ValidReview(ArtifactTypeGuidanceCatalog, ReviewDuplicates) || !ValidReview(ArtifactTypeGuidanceCatalog, ReviewCoverage) || !ValidReview(ArtifactTypeGuidanceCatalog, ReviewEntries) || ValidReview(ArtifactTypeGuidanceCatalog, "polish") {
+		t.Error("ValidReview(GuidanceCatalog): duplicates, coverage and entries")
+	}
 	entry, _ := json.Marshal(Suggestion{Action: SuggestionAdd, ID: "CN03", Title: "Rotate", Text: "Ensure keys rotate.", Group: "Encryption"})
 	if string(entry) != `{"action":"add","id":"CN03","title":"Rotate","text":"Ensure keys rotate.","group":"Encryption"}` {
 		t.Errorf("entries Suggestion JSON = %s", entry)
@@ -146,6 +153,45 @@ func TestThreatContexts(t *testing.T) {
 	dup, _ := json.Marshal(DuplicatesContext{Catalog: CatalogSummary{Title: "T"}, Threats: []ThreatSummary{{ID: "row 2", Title: "x"}}})
 	if string(dup) != `{"catalog":{"title":"T"},"threats":[{"id":"row 2","title":"x"}]}` {
 		t.Errorf("threat DuplicatesContext JSON = %s", dup)
+	}
+}
+
+// The guidance catalog's own polish contexts round-trip, and the shared
+// review shapes carry its lists beside the other two types'.
+func TestGuidanceContexts(t *testing.T) {
+	var octx GuidelineObjectiveContext
+	octx.Catalog.Title = "Guidance"
+	octx.Guideline.ID, octx.Guideline.Group = "GL01", "Setup"
+	octx.Statements = []Requirement{{ID: "GL01.S1", Text: "Organizations SHOULD…"}}
+	octx.Siblings = []GuidelineSummary{{ID: "GL02", Title: "B", Objective: "Ensure B."}}
+	raw, err := json.Marshal(PolishRequest{ArtifactType: ArtifactTypeGuidanceCatalog, Field: FieldGuidelineObjective, Mode: ModeGenerate, Context: mustRaw(t, octx)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back PolishRequest
+	if err := json.Unmarshal(raw, &back); err != nil {
+		t.Fatal(err)
+	}
+	var got GuidelineObjectiveContext
+	if err := json.Unmarshal(back.Context, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Guideline.Group != "Setup" || got.Statements[0].ID != "GL01.S1" || got.Siblings[0].Objective != "Ensure B." {
+		t.Errorf("guideline objective context did not survive the envelope: %+v", got)
+	}
+	var sctx StatementContext
+	sctx.Guideline.ID, sctx.Guideline.Objective = "GL01", "Ensure setup."
+	sctx.Statement.ID = "row 3"
+	if s, _ := json.Marshal(sctx); string(s) != `{"catalog":{"title":""},"guideline":{"id":"GL01","title":"","objective":"Ensure setup."},"statement":{"id":"row 3"}}` {
+		t.Errorf("StatementContext JSON = %s", s)
+	}
+	dup, _ := json.Marshal(DuplicatesContext{Catalog: CatalogSummary{Title: "G"}, Guidelines: []GuidelineStatements{{GuidelineSummary: GuidelineSummary{ID: "GL01", Title: "A"}, Statements: []Requirement{{ID: "row 2", Text: "x"}}}}})
+	if string(dup) != `{"catalog":{"title":"G"},"guidelines":[{"id":"GL01","title":"A","statements":[{"id":"row 2","text":"x"}]}]}` {
+		t.Errorf("guidance DuplicatesContext JSON = %s", dup)
+	}
+	cov, _ := json.Marshal(CoverageContext{Catalog: CatalogSummary{Title: "G"}, Guideline: &GuidelineSummary{ID: "GL01", Title: "A", Objective: "o"}, Statements: []Requirement{{ID: "a", Text: "b"}}})
+	if string(cov) != `{"catalog":{"title":"G"},"control":{"id":"","title":"","objective":""},"guideline":{"id":"GL01","title":"A","objective":"o"},"statements":[{"id":"a","text":"b"}]}` {
+		t.Errorf("guidance CoverageContext JSON = %s", cov)
 	}
 }
 

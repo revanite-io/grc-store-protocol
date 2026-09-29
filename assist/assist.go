@@ -3,7 +3,7 @@
 // Package assist is the wire contract for AI-assisted drafting on the hub
 // (hub ADR-0059): the per-user provider credential at /v1/me/ai-credential,
 // the polish call at POST /v1/ai/polish and the review call at POST
-// /v1/ai/review, for the control catalog and threat catalog editors. The hub
+// /v1/ai/review, for the control, threat and guidance catalog editors. The hub
 // holds the credential and makes every provider call itself; a client only
 // ever sends the token in, never reads it back, and sends draft context to
 // be generated from or polished. Prompt templates are the hub's, not the
@@ -38,13 +38,16 @@ type CredentialStatus struct {
 // Artifact types, fields and modes a polish request may name. The hub owns
 // one prompt template per (artifact type, field, mode).
 const (
-	ArtifactTypeControlCatalog = "ControlCatalog"
-	ArtifactTypeThreatCatalog  = "ThreatCatalog"
+	ArtifactTypeControlCatalog  = "ControlCatalog"
+	ArtifactTypeThreatCatalog   = "ThreatCatalog"
+	ArtifactTypeGuidanceCatalog = "GuidanceCatalog"
 
-	FieldDescription           = "description"                 // the catalog's metadata.description, both types
+	FieldDescription           = "description"                 // the catalog's metadata.description, every type
 	FieldControlObjective      = "control.objective"           // ControlCatalog: one control's objective
 	FieldAssessmentRequirement = "assessment-requirement.text" // ControlCatalog: one assessment requirement's text
 	FieldThreatDescription     = "threat.description"          // ThreatCatalog: one threat's description
+	FieldGuidelineObjective    = "guideline.objective"         // GuidanceCatalog: one guideline's objective
+	FieldStatementText         = "statement.text"              // GuidanceCatalog: one statement's text
 
 	ModeGenerate = "generate" // Current is empty: write the field from Context
 	ModePolish   = "polish"   // Current has text: improve it, keeping its meaning
@@ -52,15 +55,18 @@ const (
 
 // fields is the template table: which fields each artifact type has.
 var fields = map[string][]string{
-	ArtifactTypeControlCatalog: {FieldDescription, FieldControlObjective, FieldAssessmentRequirement},
-	ArtifactTypeThreatCatalog:  {FieldDescription, FieldThreatDescription},
+	ArtifactTypeControlCatalog:  {FieldDescription, FieldControlObjective, FieldAssessmentRequirement},
+	ArtifactTypeThreatCatalog:   {FieldDescription, FieldThreatDescription},
+	ArtifactTypeGuidanceCatalog: {FieldDescription, FieldGuidelineObjective, FieldStatementText},
 }
 
 // reviews is the review table: which review kinds each artifact type has.
-// A threat has no objective/requirements pair, so no coverage review.
+// A threat has no objective/requirements pair, so no coverage review; a
+// guideline's objective/statements pair gets one like a control's.
 var reviews = map[string][]string{
-	ArtifactTypeControlCatalog: {ReviewDuplicates, ReviewCoverage, ReviewEntries},
-	ArtifactTypeThreatCatalog:  {ReviewDuplicates, ReviewEntries},
+	ArtifactTypeControlCatalog:  {ReviewDuplicates, ReviewCoverage, ReviewEntries},
+	ArtifactTypeThreatCatalog:   {ReviewDuplicates, ReviewEntries},
+	ArtifactTypeGuidanceCatalog: {ReviewDuplicates, ReviewCoverage, ReviewEntries},
 }
 
 // ValidArtifactType reports whether artifactType is one the hub drafts.
@@ -85,8 +91,9 @@ func ValidMode(mode string) bool { return mode == ModeGenerate || mode == ModePo
 // PolishRequest is the body of POST /v1/ai/polish. Context's shape depends
 // on Field: DescriptionContext for FieldDescription, ObjectiveContext for
 // FieldControlObjective, RequirementContext for FieldAssessmentRequirement,
-// ThreatDescriptionContext for FieldThreatDescription. Nothing in it is
-// persisted or logged by the hub.
+// ThreatDescriptionContext for FieldThreatDescription,
+// GuidelineObjectiveContext for FieldGuidelineObjective, StatementContext
+// for FieldStatementText. Nothing in it is persisted or logged by the hub.
 type PolishRequest struct {
 	ArtifactType string          `json:"artifact_type"`
 	Field        string          `json:"field"`
@@ -129,15 +136,28 @@ type ThreatSummary struct {
 	Group       string `json:"group,omitempty"`
 }
 
+// GuidelineSummary is a guideline as the guidance catalog templates see it:
+// in a DescriptionContext and an EntriesContext, as a sibling in a
+// GuidelineObjectiveContext, and (embedded in GuidelineStatements) in a
+// DuplicatesContext, where ID may be a client-side label such as "row 7".
+type GuidelineSummary struct {
+	ID        string `json:"id"`
+	Title     string `json:"title"`
+	Objective string `json:"objective,omitempty"`
+	Group     string `json:"group,omitempty"`
+}
+
 // DescriptionContext is PolishRequest.Context for FieldDescription: the
 // catalog title, its groups and its entries, Controls at objective
-// altitude for a ControlCatalog, Threats for a ThreatCatalog. Requirements
-// and capability mappings are deliberately not sent for this field.
+// altitude for a ControlCatalog, Threats for a ThreatCatalog, Guidelines
+// at objective altitude for a GuidanceCatalog. Requirements, capability
+// mappings and statements are deliberately not sent for this field.
 type DescriptionContext struct {
-	Title    string           `json:"title"`
-	Groups   []Group          `json:"groups,omitempty"`
-	Controls []ControlSummary `json:"controls,omitempty"`
-	Threats  []ThreatSummary  `json:"threats,omitempty"`
+	Title      string             `json:"title"`
+	Groups     []Group            `json:"groups,omitempty"`
+	Controls   []ControlSummary   `json:"controls,omitempty"`
+	Threats    []ThreatSummary    `json:"threats,omitempty"`
+	Guidelines []GuidelineSummary `json:"guidelines,omitempty"`
 }
 
 // CapabilityMapping is one of a threat's capability mappings as the
@@ -166,7 +186,9 @@ type ThreatDescriptionContext struct {
 }
 
 // Requirement is one assessment requirement: the control's own in an
-// ObjectiveContext, a sibling in a RequirementContext.
+// ObjectiveContext, a sibling in a RequirementContext. The guidance catalog
+// contexts carry a guideline's statements in the same shape (ID and Text;
+// Applicability stays empty), so one list type serves both editors.
 type Requirement struct {
 	ID            string   `json:"id"`
 	Text          string   `json:"text"`
@@ -219,6 +241,43 @@ type RequirementContext struct {
 	ApplicabilityGroups []Group       `json:"applicability_groups,omitempty"`
 }
 
+// GuidelineObjectiveContext is PolishRequest.Context for
+// FieldGuidelineObjective, the GuidanceCatalog twin of ObjectiveContext.
+// The guideline's own statements are the content source; Siblings, every
+// other guideline with a non-blank objective, are the style pattern. The
+// guideline being written never appears in Siblings.
+type GuidelineObjectiveContext struct {
+	Catalog   CatalogSummary `json:"catalog"`
+	Guideline struct {
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Group string `json:"group,omitempty"`
+	} `json:"guideline"`
+	Statements []Requirement      `json:"statements,omitempty"`
+	Siblings   []GuidelineSummary `json:"siblings,omitempty"`
+}
+
+// StatementContext is PolishRequest.Context for FieldStatementText, the
+// GuidanceCatalog twin of RequirementContext: the parent guideline's
+// objective is the content source and Siblings, every other non-blank
+// statement (the same guideline's first, then the rest of the catalog's),
+// are the style pattern. The row being written never appears in Siblings;
+// its own text travels as PolishRequest.Current. Clients cap Siblings.
+type StatementContext struct {
+	Catalog   CatalogSummary `json:"catalog"`
+	Guideline struct {
+		ID        string `json:"id"`
+		Title     string `json:"title"`
+		Objective string `json:"objective,omitempty"`
+		Group     string `json:"group,omitempty"`
+	} `json:"guideline"`
+	Statement struct {
+		ID    string `json:"id,omitempty"`
+		Title string `json:"title,omitempty"`
+	} `json:"statement"`
+	Siblings []Requirement `json:"siblings,omitempty"`
+}
+
 // Review kinds for POST /v1/ai/review (REV-415): whole-draft checks the
 // polish call cannot express. Each answers structured JSON, not field
 // text, and the hub owns one prompt template per kind.
@@ -257,19 +316,32 @@ type ControlRequirements struct {
 	Requirements []Requirement `json:"requirements,omitempty"`
 }
 
+// GuidelineStatements is one guideline with its statements, as the
+// duplicates template sees a guidance catalog. IDs are the authored ones or
+// client-side labels, as in ControlRequirements.
+type GuidelineStatements struct {
+	GuidelineSummary
+	Statements []Requirement `json:"statements,omitempty"`
+}
+
 // DuplicatesContext is ReviewRequest.Context for ReviewDuplicates: for a
 // ControlCatalog every control with its requirements, for a ThreatCatalog
-// every threat, in catalog order.
+// every threat, for a GuidanceCatalog every guideline with its statements,
+// in catalog order.
 type DuplicatesContext struct {
-	Catalog  CatalogSummary        `json:"catalog"`
-	Controls []ControlRequirements `json:"controls,omitempty"`
-	Threats  []ThreatSummary       `json:"threats,omitempty"`
+	Catalog    CatalogSummary        `json:"catalog"`
+	Controls   []ControlRequirements `json:"controls,omitempty"`
+	Threats    []ThreatSummary       `json:"threats,omitempty"`
+	Guidelines []GuidelineStatements `json:"guidelines,omitempty"`
 }
 
 // CoverageContext is ReviewRequest.Context for ReviewCoverage: one control
 // whose objective is the content, its existing requirements (the ones the
 // answer may add to or rewrite), and Siblings, other controls'
-// requirements as the style pattern, capped by the client.
+// requirements as the style pattern, capped by the client. A
+// GuidanceCatalog sends Guideline and Statements instead of Control and
+// Requirements, Siblings being other guidelines' statements; Control is
+// then left empty and ApplicabilityGroups unused.
 type CoverageContext struct {
 	Catalog CatalogSummary `json:"catalog"`
 	Control struct {
@@ -278,21 +350,25 @@ type CoverageContext struct {
 		Objective string `json:"objective"`
 		Group     string `json:"group,omitempty"`
 	} `json:"control"`
-	Requirements        []Requirement `json:"requirements,omitempty"`
-	Siblings            []Requirement `json:"siblings,omitempty"`
-	ApplicabilityGroups []Group       `json:"applicability_groups,omitempty"`
+	Requirements        []Requirement     `json:"requirements,omitempty"`
+	Guideline           *GuidelineSummary `json:"guideline,omitempty"`
+	Statements          []Requirement     `json:"statements,omitempty"`
+	Siblings            []Requirement     `json:"siblings,omitempty"`
+	ApplicabilityGroups []Group           `json:"applicability_groups,omitempty"`
 }
 
 // EntriesContext is ReviewRequest.Context for ReviewEntries: the catalog's
 // title and description (the content), its groups, and its entries so far,
-// Controls for a ControlCatalog or Threats for a ThreatCatalog. The answer
-// proposes entries (Suggestion with Title, Text as the objective or
-// description, and Group) the catalog still lacks.
+// Controls for a ControlCatalog, Threats for a ThreatCatalog or Guidelines
+// for a GuidanceCatalog. The answer proposes entries (Suggestion with
+// Title, Text as the objective or description, and Group) the catalog
+// still lacks.
 type EntriesContext struct {
-	Catalog  CatalogSummary   `json:"catalog"`
-	Groups   []Group          `json:"groups,omitempty"`
-	Controls []ControlSummary `json:"controls,omitempty"`
-	Threats  []ThreatSummary  `json:"threats,omitempty"`
+	Catalog    CatalogSummary     `json:"catalog"`
+	Groups     []Group            `json:"groups,omitempty"`
+	Controls   []ControlSummary   `json:"controls,omitempty"`
+	Threats    []ThreatSummary    `json:"threats,omitempty"`
+	Guidelines []GuidelineSummary `json:"guidelines,omitempty"`
 }
 
 // ReviewResponse is the body of POST /v1/ai/review. Duplicates is set for
@@ -321,9 +397,9 @@ const (
 
 // Suggestion is one proposed change from a coverage or entries review. The
 // client shows it for acceptance; nothing is written until the author
-// agrees. A coverage suggestion is a requirement (Text, Applicability); an
-// entries suggestion is a control or threat (Title, Text as its objective
-// or description, Group), always an add.
+// agrees. A coverage suggestion is a requirement (Text, Applicability) or a
+// statement (Text); an entries suggestion is a control, threat or guideline
+// (Title, Text as its objective or description, Group), always an add.
 type Suggestion struct {
 	Action string `json:"action"`
 	// ID: on add, a proposed ID in the siblings' pattern (may be empty);
