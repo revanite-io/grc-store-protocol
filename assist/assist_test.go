@@ -28,6 +28,34 @@ func TestValidators(t *testing.T) {
 	if !ValidMode(ModeGenerate) || !ValidMode(ModePolish) || ValidMode("rewrite") {
 		t.Error("ValidMode: generate and polish only")
 	}
+	// The listings agree with the validators, so a message built from them
+	// cannot drift; they hand out copies.
+	types := ArtifactTypes()
+	if len(types) != 3 || types[0] != ArtifactTypeControlCatalog || types[2] != ArtifactTypeGuidanceCatalog {
+		t.Errorf("ArtifactTypes = %v", types)
+	}
+	for _, at := range types {
+		if !ValidArtifactType(at) {
+			t.Errorf("ArtifactTypes lists %s but ValidArtifactType refuses it", at)
+		}
+		for _, f := range Fields(at) {
+			if !ValidField(at, f) {
+				t.Errorf("Fields(%s) lists %s but ValidField refuses it", at, f)
+			}
+		}
+		for _, k := range Reviews(at) {
+			if !ValidReview(at, k) {
+				t.Errorf("Reviews(%s) lists %s but ValidReview refuses it", at, k)
+			}
+		}
+	}
+	if Fields("Policy") != nil || Reviews("") != nil {
+		t.Error("Fields/Reviews of an unknown type must be nil")
+	}
+	types[0] = "x"
+	if ArtifactTypes()[0] != ArtifactTypeControlCatalog {
+		t.Error("ArtifactTypes must return a copy")
+	}
 }
 
 // The context is opaque on the envelope and typed per field: a round trip

@@ -69,8 +69,22 @@ var reviews = map[string][]string{
 	ArtifactTypeGuidanceCatalog: {ReviewDuplicates, ReviewCoverage, ReviewEntries},
 }
 
+// artifactTypes is the order the hub lists the types in, for messages.
+var artifactTypes = []string{ArtifactTypeControlCatalog, ArtifactTypeThreatCatalog, ArtifactTypeGuidanceCatalog}
+
 // ValidArtifactType reports whether artifactType is one the hub drafts.
 func ValidArtifactType(artifactType string) bool { _, ok := fields[artifactType]; return ok }
+
+// ArtifactTypes lists the types the hub drafts, in a stable order, so an
+// error message can name them without keeping its own copy of the table.
+func ArtifactTypes() []string { return append([]string(nil), artifactTypes...) }
+
+// Fields lists the polish fields artifactType has, in template order; nil
+// for a type the hub does not draft.
+func Fields(artifactType string) []string { return append([]string(nil), fields[artifactType]...) }
+
+// Reviews lists the review kinds artifactType has; nil for an unknown type.
+func Reviews(artifactType string) []string { return append([]string(nil), reviews[artifactType]...) }
 
 // ValidField reports whether field is one the hub has a template for on
 // artifactType.
