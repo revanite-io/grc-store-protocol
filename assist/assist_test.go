@@ -76,8 +76,15 @@ func TestValidReview(t *testing.T) {
 	if !ValidReview(ArtifactTypeControlCatalog, ReviewDuplicates) || !ValidReview(ArtifactTypeControlCatalog, ReviewCoverage) || ValidReview(ArtifactTypeControlCatalog, "polish") || ValidReview(ArtifactTypeControlCatalog, "") {
 		t.Error("ValidReview(ControlCatalog): duplicates and coverage only")
 	}
-	if !ValidReview(ArtifactTypeThreatCatalog, ReviewDuplicates) || ValidReview(ArtifactTypeThreatCatalog, ReviewCoverage) || ValidReview("Policy", ReviewDuplicates) {
-		t.Error("ValidReview(ThreatCatalog): duplicates only")
+	if !ValidReview(ArtifactTypeThreatCatalog, ReviewDuplicates) || !ValidReview(ArtifactTypeThreatCatalog, ReviewEntries) || ValidReview(ArtifactTypeThreatCatalog, ReviewCoverage) || ValidReview("Policy", ReviewDuplicates) {
+		t.Error("ValidReview(ThreatCatalog): duplicates and entries only")
+	}
+	if !ValidReview(ArtifactTypeControlCatalog, ReviewEntries) {
+		t.Error("ValidReview(ControlCatalog): entries")
+	}
+	entry, _ := json.Marshal(Suggestion{Action: SuggestionAdd, ID: "CN03", Title: "Rotate", Text: "Ensure keys rotate.", Group: "Encryption"})
+	if string(entry) != `{"action":"add","id":"CN03","title":"Rotate","text":"Ensure keys rotate.","group":"Encryption"}` {
+		t.Errorf("entries Suggestion JSON = %s", entry)
 	}
 }
 

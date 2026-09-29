@@ -59,8 +59,8 @@ var fields = map[string][]string{
 // reviews is the review table: which review kinds each artifact type has.
 // A threat has no objective/requirements pair, so no coverage review.
 var reviews = map[string][]string{
-	ArtifactTypeControlCatalog: {ReviewDuplicates, ReviewCoverage},
-	ArtifactTypeThreatCatalog:  {ReviewDuplicates},
+	ArtifactTypeControlCatalog: {ReviewDuplicates, ReviewCoverage, ReviewEntries},
+	ArtifactTypeThreatCatalog:  {ReviewDuplicates, ReviewEntries},
 }
 
 // ValidArtifactType reports whether artifactType is one the hub drafts.
@@ -225,6 +225,7 @@ type RequirementContext struct {
 const (
 	ReviewDuplicates = "duplicates" // identical or functionally indistinguishable requirements anywhere in the catalog
 	ReviewCoverage   = "coverage"   // the requirements one control's objective still lacks, plus rewrites of ones that fall short
+	ReviewEntries    = "entries"    // the controls (or threats) the catalog's description and groups still lack
 )
 
 // ValidReview reports whether kind is a review the hub has a template for
@@ -233,7 +234,7 @@ func ValidReview(artifactType, kind string) bool { return has(reviews[artifactTy
 
 // ReviewRequest is the body of POST /v1/ai/review. Context's shape depends
 // on Kind: DuplicatesContext for ReviewDuplicates, CoverageContext for
-// ReviewCoverage. Nothing in it is persisted or logged by the hub. The
+// ReviewCoverage, EntriesContext for ReviewEntries. Nothing in it is persisted or logged by the hub. The
 // body is capped by limits.MaxAIReviewRequestBytes.
 type ReviewRequest struct {
 	ArtifactType string          `json:"artifact_type"`
@@ -282,9 +283,21 @@ type CoverageContext struct {
 	ApplicabilityGroups []Group       `json:"applicability_groups,omitempty"`
 }
 
+// EntriesContext is ReviewRequest.Context for ReviewEntries: the catalog's
+// title and description (the content), its groups, and its entries so far,
+// Controls for a ControlCatalog or Threats for a ThreatCatalog. The answer
+// proposes entries (Suggestion with Title, Text as the objective or
+// description, and Group) the catalog still lacks.
+type EntriesContext struct {
+	Catalog  CatalogSummary   `json:"catalog"`
+	Groups   []Group          `json:"groups,omitempty"`
+	Controls []ControlSummary `json:"controls,omitempty"`
+	Threats  []ThreatSummary  `json:"threats,omitempty"`
+}
+
 // ReviewResponse is the body of POST /v1/ai/review. Duplicates is set for
 // ReviewDuplicates (empty means none found), Suggestions for
-// ReviewCoverage (empty means the objective is covered). Note is a short
+// ReviewCoverage and ReviewEntries (empty means nothing is missing). Note is a short
 // status for the author, as on PolishResponse.
 type ReviewResponse struct {
 	Duplicates  []DuplicateGroup `json:"duplicates,omitempty"`
@@ -306,14 +319,19 @@ const (
 	SuggestionRewrite = "rewrite"
 )
 
-// Suggestion is one proposed change from a coverage review. The client
-// shows it for acceptance; nothing is written until the author agrees.
+// Suggestion is one proposed change from a coverage or entries review. The
+// client shows it for acceptance; nothing is written until the author
+// agrees. A coverage suggestion is a requirement (Text, Applicability); an
+// entries suggestion is a control or threat (Title, Text as its objective
+// or description, Group), always an add.
 type Suggestion struct {
 	Action string `json:"action"`
 	// ID: on add, a proposed ID in the siblings' pattern (may be empty);
 	// on rewrite, the existing requirement's ID or label from the context.
 	ID            string   `json:"id,omitempty"`
+	Title         string   `json:"title,omitempty"`
 	Text          string   `json:"text"`
+	Group         string   `json:"group,omitempty"`
 	Applicability []string `json:"applicability,omitempty"`
 	Reason        string   `json:"reason,omitempty"`
 }
