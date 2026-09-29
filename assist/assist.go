@@ -152,3 +152,99 @@ type RequirementContext struct {
 	Siblings            []Requirement `json:"siblings,omitempty"`
 	ApplicabilityGroups []Group       `json:"applicability_groups,omitempty"`
 }
+
+// Review kinds for POST /v1/ai/review (REV-415): whole-draft checks the
+// polish call cannot express. Each answers structured JSON, not field
+// text, and the hub owns one prompt template per kind.
+const (
+	ReviewDuplicates = "duplicates" // identical or functionally indistinguishable requirements anywhere in the catalog
+	ReviewCoverage   = "coverage"   // the requirements one control's objective still lacks, plus rewrites of ones that fall short
+)
+
+// ValidReview reports whether kind is a review the hub has a template for.
+func ValidReview(kind string) bool { return kind == ReviewDuplicates || kind == ReviewCoverage }
+
+// ReviewRequest is the body of POST /v1/ai/review. Context's shape depends
+// on Kind: DuplicatesContext for ReviewDuplicates, CoverageContext for
+// ReviewCoverage. Nothing in it is persisted or logged by the hub. The
+// body is capped by limits.MaxAIReviewRequestBytes.
+type ReviewRequest struct {
+	ArtifactType string          `json:"artifact_type"`
+	Kind         string          `json:"kind"`
+	Context      json.RawMessage `json:"context"`
+}
+
+// CatalogSummary is the catalog as the review templates see it.
+type CatalogSummary struct {
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+}
+
+// ControlRequirements is one control with its requirements, as the
+// duplicates template sees the whole catalog. A requirement's ID is the
+// authored one, or a client-side label such as "row 7" when none is typed
+// yet, so the answer can name it.
+type ControlRequirements struct {
+	ControlSummary
+	Requirements []Requirement `json:"requirements,omitempty"`
+}
+
+// DuplicatesContext is ReviewRequest.Context for ReviewDuplicates: every
+// control with its requirements, in catalog order.
+type DuplicatesContext struct {
+	Catalog  CatalogSummary        `json:"catalog"`
+	Controls []ControlRequirements `json:"controls"`
+}
+
+// CoverageContext is ReviewRequest.Context for ReviewCoverage: one control
+// whose objective is the content, its existing requirements (the ones the
+// answer may add to or rewrite), and Siblings, other controls'
+// requirements as the style pattern, capped by the client.
+type CoverageContext struct {
+	Catalog CatalogSummary `json:"catalog"`
+	Control struct {
+		ID        string `json:"id"`
+		Title     string `json:"title"`
+		Objective string `json:"objective"`
+		Group     string `json:"group,omitempty"`
+	} `json:"control"`
+	Requirements        []Requirement `json:"requirements,omitempty"`
+	Siblings            []Requirement `json:"siblings,omitempty"`
+	ApplicabilityGroups []Group       `json:"applicability_groups,omitempty"`
+}
+
+// ReviewResponse is the body of POST /v1/ai/review. Duplicates is set for
+// ReviewDuplicates (empty means none found), Suggestions for
+// ReviewCoverage (empty means the objective is covered). Note is a short
+// status for the author, as on PolishResponse.
+type ReviewResponse struct {
+	Duplicates  []DuplicateGroup `json:"duplicates,omitempty"`
+	Suggestions []Suggestion     `json:"suggestions,omitempty"`
+	Note        string           `json:"note,omitempty"`
+}
+
+// DuplicateGroup is one set of requirements the review judged identical or
+// functionally indistinguishable, by the IDs (or labels) the context used.
+type DuplicateGroup struct {
+	IDs    []string `json:"ids"`
+	Reason string   `json:"reason"`
+}
+
+// Suggestion actions: add a new requirement under the control, or rewrite
+// an existing one (ID names it) so the objective is covered.
+const (
+	SuggestionAdd     = "add"
+	SuggestionRewrite = "rewrite"
+)
+
+// Suggestion is one proposed change from a coverage review. The client
+// shows it for acceptance; nothing is written until the author agrees.
+type Suggestion struct {
+	Action string `json:"action"`
+	// ID: on add, a proposed ID in the siblings' pattern (may be empty);
+	// on rewrite, the existing requirement's ID or label from the context.
+	ID            string   `json:"id,omitempty"`
+	Text          string   `json:"text"`
+	Applicability []string `json:"applicability,omitempty"`
+	Reason        string   `json:"reason,omitempty"`
+}

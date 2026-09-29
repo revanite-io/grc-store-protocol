@@ -64,3 +64,41 @@ func TestContextRoundTrip(t *testing.T) {
 		t.Errorf("requirement context did not round-trip: %+v", rgot)
 	}
 }
+
+func TestValidReview(t *testing.T) {
+	if !ValidReview(ReviewDuplicates) || !ValidReview(ReviewCoverage) || ValidReview("polish") || ValidReview("") {
+		t.Error("ValidReview: duplicates and coverage only")
+	}
+}
+
+// A coverage context round-trips through the opaque envelope, and the
+// embedded ControlSummary flattens into the control's own keys.
+func TestReviewRoundTrip(t *testing.T) {
+	var cctx CoverageContext
+	cctx.Catalog.Title = "ACME"
+	cctx.Control.ID, cctx.Control.Objective = "CN01", "Ensure encryption."
+	cctx.Requirements = []Requirement{{ID: "row 3", Text: "MUST encrypt"}}
+	inner, err := json.Marshal(cctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := json.Marshal(ReviewRequest{ArtifactType: ArtifactTypeControlCatalog, Kind: ReviewCoverage, Context: inner})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var req ReviewRequest
+	if err := json.Unmarshal(raw, &req); err != nil {
+		t.Fatal(err)
+	}
+	var back CoverageContext
+	if err := json.Unmarshal(req.Context, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Control.Objective != "Ensure encryption." || back.Requirements[0].ID != "row 3" {
+		t.Errorf("round trip lost fields: %+v", back)
+	}
+	flat, _ := json.Marshal(ControlRequirements{ControlSummary: ControlSummary{ID: "CN01", Title: "Encrypt"}, Requirements: []Requirement{{ID: "a", Text: "b"}}})
+	if string(flat) != `{"id":"CN01","title":"Encrypt","requirements":[{"id":"a","text":"b"}]}` {
+		t.Errorf("ControlRequirements JSON = %s", flat)
+	}
+}

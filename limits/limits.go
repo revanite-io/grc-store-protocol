@@ -44,3 +44,9 @@ const (
 	MaxAIPolishRequestBytes = 64 << 10 // 64 KiB
 	MaxAIPolishCurrentBytes = 8 << 10  // 8 KiB
 )
+
+// MaxAIReviewRequestBytes caps the whole POST /v1/ai/review body. A
+// duplicates review sends every requirement in the catalog, so it is
+// four times the polish cap; over it the hub answers 413
+// apierror.AIContextTooLarge before touching the provider.
+const MaxAIReviewRequestBytes = 256 << 10 // 256 KiB
