@@ -11,8 +11,15 @@ func TestValidators(t *testing.T) {
 	if !ValidProvider(ProviderAnthropic) || ValidProvider("openai") || ValidProvider("") {
 		t.Error("ValidProvider: only anthropic is accepted today")
 	}
-	if !ValidField(FieldDescription) || !ValidField(FieldControlObjective) || !ValidField(FieldAssessmentRequirement) || ValidField("title") {
-		t.Error("ValidField: description, control.objective and assessment-requirement.text only")
+	if !ValidArtifactType(ArtifactTypeControlCatalog) || !ValidArtifactType(ArtifactTypeThreatCatalog) || ValidArtifactType("Policy") || ValidArtifactType("") {
+		t.Error("ValidArtifactType: ControlCatalog and ThreatCatalog only")
+	}
+	cc, tc := ArtifactTypeControlCatalog, ArtifactTypeThreatCatalog
+	if !ValidField(cc, FieldDescription) || !ValidField(cc, FieldControlObjective) || !ValidField(cc, FieldAssessmentRequirement) || ValidField(cc, "title") || ValidField(cc, FieldThreatDescription) {
+		t.Error("ValidField(ControlCatalog): description, control.objective and assessment-requirement.text only")
+	}
+	if !ValidField(tc, FieldDescription) || !ValidField(tc, FieldThreatDescription) || ValidField(tc, FieldControlObjective) || ValidField("Policy", FieldDescription) {
+		t.Error("ValidField(ThreatCatalog): description and threat.description only")
 	}
 	if !ValidMode(ModeGenerate) || !ValidMode(ModePolish) || ValidMode("rewrite") {
 		t.Error("ValidMode: generate and polish only")
@@ -66,8 +73,11 @@ func TestContextRoundTrip(t *testing.T) {
 }
 
 func TestValidReview(t *testing.T) {
-	if !ValidReview(ReviewDuplicates) || !ValidReview(ReviewCoverage) || ValidReview("polish") || ValidReview("") {
-		t.Error("ValidReview: duplicates and coverage only")
+	if !ValidReview(ArtifactTypeControlCatalog, ReviewDuplicates) || !ValidReview(ArtifactTypeControlCatalog, ReviewCoverage) || ValidReview(ArtifactTypeControlCatalog, "polish") || ValidReview(ArtifactTypeControlCatalog, "") {
+		t.Error("ValidReview(ControlCatalog): duplicates and coverage only")
+	}
+	if !ValidReview(ArtifactTypeThreatCatalog, ReviewDuplicates) || ValidReview(ArtifactTypeThreatCatalog, ReviewCoverage) || ValidReview("Policy", ReviewDuplicates) {
+		t.Error("ValidReview(ThreatCatalog): duplicates only")
 	}
 }
 
@@ -101,4 +111,42 @@ func TestReviewRoundTrip(t *testing.T) {
 	if string(flat) != `{"id":"CN01","title":"Encrypt","requirements":[{"id":"a","text":"b"}]}` {
 		t.Errorf("ControlRequirements JSON = %s", flat)
 	}
+}
+
+// A threat description context round-trips, and the shared shapes carry
+// the threat catalog's lists beside the control catalog's.
+func TestThreatContexts(t *testing.T) {
+	var tctx ThreatDescriptionContext
+	tctx.Catalog.Title = "Threats"
+	tctx.Threat.ID, tctx.Threat.Group = "TH01", "Data"
+	tctx.Capabilities = []CapabilityMapping{{Reference: "CP", Entries: []string{"CP08", "CP09"}, Remarks: "rules"}}
+	tctx.Siblings = []ThreatSummary{{ID: "TH02", Title: "B", Description: "d"}}
+	raw, err := json.Marshal(PolishRequest{ArtifactType: ArtifactTypeThreatCatalog, Field: FieldThreatDescription, Mode: ModeGenerate, Context: mustRaw(t, tctx)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back PolishRequest
+	if err := json.Unmarshal(raw, &back); err != nil {
+		t.Fatal(err)
+	}
+	var got ThreatDescriptionContext
+	if err := json.Unmarshal(back.Context, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Threat.Group != "Data" || got.Capabilities[0].Entries[1] != "CP09" || got.Siblings[0].Description != "d" {
+		t.Errorf("threat context did not survive the envelope: %+v", got)
+	}
+	dup, _ := json.Marshal(DuplicatesContext{Catalog: CatalogSummary{Title: "T"}, Threats: []ThreatSummary{{ID: "row 2", Title: "x"}}})
+	if string(dup) != `{"catalog":{"title":"T"},"threats":[{"id":"row 2","title":"x"}]}` {
+		t.Errorf("threat DuplicatesContext JSON = %s", dup)
+	}
+}
+
+func mustRaw(t *testing.T, v any) json.RawMessage {
+	t.Helper()
+	raw, err := json.Marshal(v)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return raw
 }

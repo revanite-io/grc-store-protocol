@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package assist is the wire contract for AI-assisted drafting on the hub
-// (hub ADR-0059): the per-user provider credential at /v1/me/ai-credential
-// and the polish call at POST /v1/ai/polish. The hub holds the credential and
-// makes every provider call itself; a client only ever sends the token in,
-// never reads it back, and sends draft context to be generated from or
-// polished. Prompt templates are the hub's, not the client's.
+// (hub ADR-0059): the per-user provider credential at /v1/me/ai-credential,
+// the polish call at POST /v1/ai/polish and the review call at POST
+// /v1/ai/review, for the control catalog and threat catalog editors. The hub
+// holds the credential and makes every provider call itself; a client only
+// ever sends the token in, never reads it back, and sends draft context to
+// be generated from or polished. Prompt templates are the hub's, not the
+// client's.
 package assist
 
 import "encoding/json"
@@ -37,18 +39,44 @@ type CredentialStatus struct {
 // one prompt template per (artifact type, field, mode).
 const (
 	ArtifactTypeControlCatalog = "ControlCatalog"
+	ArtifactTypeThreatCatalog  = "ThreatCatalog"
 
-	FieldDescription           = "description"                 // ControlCatalog metadata.description
-	FieldControlObjective      = "control.objective"           // one control's objective
-	FieldAssessmentRequirement = "assessment-requirement.text" // one assessment requirement's text
+	FieldDescription           = "description"                 // the catalog's metadata.description, both types
+	FieldControlObjective      = "control.objective"           // ControlCatalog: one control's objective
+	FieldAssessmentRequirement = "assessment-requirement.text" // ControlCatalog: one assessment requirement's text
+	FieldThreatDescription     = "threat.description"          // ThreatCatalog: one threat's description
 
 	ModeGenerate = "generate" // Current is empty: write the field from Context
 	ModePolish   = "polish"   // Current has text: improve it, keeping its meaning
 )
 
-// ValidField reports whether field is one the hub has a template for.
-func ValidField(field string) bool {
-	return field == FieldDescription || field == FieldControlObjective || field == FieldAssessmentRequirement
+// fields is the template table: which fields each artifact type has.
+var fields = map[string][]string{
+	ArtifactTypeControlCatalog: {FieldDescription, FieldControlObjective, FieldAssessmentRequirement},
+	ArtifactTypeThreatCatalog:  {FieldDescription, FieldThreatDescription},
+}
+
+// reviews is the review table: which review kinds each artifact type has.
+// A threat has no objective/requirements pair, so no coverage review.
+var reviews = map[string][]string{
+	ArtifactTypeControlCatalog: {ReviewDuplicates, ReviewCoverage},
+	ArtifactTypeThreatCatalog:  {ReviewDuplicates},
+}
+
+// ValidArtifactType reports whether artifactType is one the hub drafts.
+func ValidArtifactType(artifactType string) bool { _, ok := fields[artifactType]; return ok }
+
+// ValidField reports whether field is one the hub has a template for on
+// artifactType.
+func ValidField(artifactType, field string) bool { return has(fields[artifactType], field) }
+
+func has(list []string, v string) bool {
+	for _, x := range list {
+		if x == v {
+			return true
+		}
+	}
+	return false
 }
 
 // ValidMode reports whether mode is generate or polish.
@@ -56,8 +84,9 @@ func ValidMode(mode string) bool { return mode == ModeGenerate || mode == ModePo
 
 // PolishRequest is the body of POST /v1/ai/polish. Context's shape depends
 // on Field: DescriptionContext for FieldDescription, ObjectiveContext for
-// FieldControlObjective, RequirementContext for FieldAssessmentRequirement.
-// Nothing in it is persisted or logged by the hub.
+// FieldControlObjective, RequirementContext for FieldAssessmentRequirement,
+// ThreatDescriptionContext for FieldThreatDescription. Nothing in it is
+// persisted or logged by the hub.
 type PolishRequest struct {
 	ArtifactType string          `json:"artifact_type"`
 	Field        string          `json:"field"`
@@ -84,19 +113,56 @@ type ControlSummary struct {
 	Objective string `json:"objective,omitempty"`
 }
 
-// Group is a control group as the description template sees it.
+// Group is a catalog group as the description templates see it.
 type Group struct {
 	ID    string `json:"id"`
 	Title string `json:"title,omitempty"`
 }
 
+// ThreatSummary is a threat as the threat catalog templates see it: in a
+// DescriptionContext, a DuplicatesContext (where ID may be a client-side
+// label such as "row 7"), and as a sibling in a ThreatDescriptionContext.
+type ThreatSummary struct {
+	ID          string `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description,omitempty"`
+	Group       string `json:"group,omitempty"`
+}
+
 // DescriptionContext is PolishRequest.Context for FieldDescription: the
-// catalog title, its groups and its controls at objective altitude.
-// Requirements are deliberately not sent for this field.
+// catalog title, its groups and its entries, Controls at objective
+// altitude for a ControlCatalog, Threats for a ThreatCatalog. Requirements
+// and capability mappings are deliberately not sent for this field.
 type DescriptionContext struct {
 	Title    string           `json:"title"`
 	Groups   []Group          `json:"groups,omitempty"`
 	Controls []ControlSummary `json:"controls,omitempty"`
+	Threats  []ThreatSummary  `json:"threats,omitempty"`
+}
+
+// CapabilityMapping is one of a threat's capability mappings as the
+// threat description template sees it: the referenced catalog and the
+// entry IDs in it.
+type CapabilityMapping struct {
+	Reference string   `json:"reference"`
+	Entries   []string `json:"entries"`
+	Remarks   string   `json:"remarks,omitempty"`
+}
+
+// ThreatDescriptionContext is PolishRequest.Context for
+// FieldThreatDescription. The threat's capability mappings are the content
+// source; Siblings, every other threat with a non-blank description, are
+// the style pattern. The threat being written never appears in Siblings;
+// its own text travels as PolishRequest.Current. Clients cap Siblings.
+type ThreatDescriptionContext struct {
+	Catalog CatalogSummary `json:"catalog"`
+	Threat  struct {
+		ID    string `json:"id"`
+		Title string `json:"title"`
+		Group string `json:"group,omitempty"`
+	} `json:"threat"`
+	Capabilities []CapabilityMapping `json:"capabilities,omitempty"`
+	Siblings     []ThreatSummary     `json:"siblings,omitempty"`
 }
 
 // Requirement is one assessment requirement: the control's own in an
@@ -161,8 +227,9 @@ const (
 	ReviewCoverage   = "coverage"   // the requirements one control's objective still lacks, plus rewrites of ones that fall short
 )
 
-// ValidReview reports whether kind is a review the hub has a template for.
-func ValidReview(kind string) bool { return kind == ReviewDuplicates || kind == ReviewCoverage }
+// ValidReview reports whether kind is a review the hub has a template for
+// on artifactType.
+func ValidReview(artifactType, kind string) bool { return has(reviews[artifactType], kind) }
 
 // ReviewRequest is the body of POST /v1/ai/review. Context's shape depends
 // on Kind: DuplicatesContext for ReviewDuplicates, CoverageContext for
@@ -189,11 +256,13 @@ type ControlRequirements struct {
 	Requirements []Requirement `json:"requirements,omitempty"`
 }
 
-// DuplicatesContext is ReviewRequest.Context for ReviewDuplicates: every
-// control with its requirements, in catalog order.
+// DuplicatesContext is ReviewRequest.Context for ReviewDuplicates: for a
+// ControlCatalog every control with its requirements, for a ThreatCatalog
+// every threat, in catalog order.
 type DuplicatesContext struct {
 	Catalog  CatalogSummary        `json:"catalog"`
-	Controls []ControlRequirements `json:"controls"`
+	Controls []ControlRequirements `json:"controls,omitempty"`
+	Threats  []ThreatSummary       `json:"threats,omitempty"`
 }
 
 // CoverageContext is ReviewRequest.Context for ReviewCoverage: one control
