@@ -15,8 +15,8 @@ func TestValidators(t *testing.T) {
 		t.Error("ValidArtifactType: ControlCatalog, ThreatCatalog and GuidanceCatalog only")
 	}
 	gc := ArtifactTypeGuidanceCatalog
-	if !ValidField(gc, FieldDescription) || !ValidField(gc, FieldGuidelineObjective) || !ValidField(gc, FieldStatementText) || ValidField(gc, FieldControlObjective) || ValidField(ArtifactTypeControlCatalog, FieldStatementText) {
-		t.Error("ValidField(GuidanceCatalog): description, guideline.objective and statement.text only")
+	if !ValidField(gc, FieldDescription) || !ValidField(gc, FieldGuidelineObjective) || !ValidField(gc, FieldStatementText) || !ValidField(gc, FieldStatementTitle) || ValidField(gc, FieldControlObjective) || ValidField(ArtifactTypeControlCatalog, FieldStatementText) {
+		t.Error("ValidField(GuidanceCatalog): description, guideline.objective, statement.text and statement.title only")
 	}
 	cc, tc := ArtifactTypeControlCatalog, ArtifactTypeThreatCatalog
 	if !ValidField(cc, FieldDescription) || !ValidField(cc, FieldControlObjective) || !ValidField(cc, FieldAssessmentRequirement) || ValidField(cc, "title") || ValidField(cc, FieldThreatDescription) {
@@ -212,6 +212,12 @@ func TestGuidanceContexts(t *testing.T) {
 	sctx.Statement.ID = "row 3"
 	if s, _ := json.Marshal(sctx); string(s) != `{"catalog":{"title":""},"guideline":{"id":"GL01","title":"","objective":"Ensure setup."},"statement":{"id":"row 3"}}` {
 		t.Errorf("StatementContext JSON = %s", s)
+	}
+	// For the title field the statement's text is content and siblings carry titles.
+	sctx.Statement.Text = "Organizations SHOULD assess maintainers."
+	sctx.Siblings = []Requirement{{ID: "GL01.S1", Title: "Reject Untrustworthy Maintainers", Text: "…"}}
+	if s, _ := json.Marshal(sctx); string(s) != `{"catalog":{"title":""},"guideline":{"id":"GL01","title":"","objective":"Ensure setup."},"statement":{"id":"row 3","text":"Organizations SHOULD assess maintainers."},"siblings":[{"id":"GL01.S1","title":"Reject Untrustworthy Maintainers","text":"…"}]}` {
+		t.Errorf("StatementContext title JSON = %s", s)
 	}
 	dup, _ := json.Marshal(DuplicatesContext{Catalog: CatalogSummary{Title: "G"}, Guidelines: []GuidelineStatements{{GuidelineSummary: GuidelineSummary{ID: "GL01", Title: "A"}, Statements: []Requirement{{ID: "row 2", Text: "x"}}}}})
 	if string(dup) != `{"catalog":{"title":"G"},"guidelines":[{"id":"GL01","title":"A","statements":[{"id":"row 2","text":"x"}]}]}` {

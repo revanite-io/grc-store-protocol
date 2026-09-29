@@ -48,6 +48,7 @@ const (
 	FieldThreatDescription     = "threat.description"          // ThreatCatalog: one threat's description
 	FieldGuidelineObjective    = "guideline.objective"         // GuidanceCatalog: one guideline's objective
 	FieldStatementText         = "statement.text"              // GuidanceCatalog: one statement's text
+	FieldStatementTitle        = "statement.title"             // GuidanceCatalog: one statement's title, from its text
 
 	ModeGenerate = "generate" // Current is empty: write the field from Context
 	ModePolish   = "polish"   // Current has text: improve it, keeping its meaning
@@ -57,7 +58,7 @@ const (
 var fields = map[string][]string{
 	ArtifactTypeControlCatalog:  {FieldDescription, FieldControlObjective, FieldAssessmentRequirement},
 	ArtifactTypeThreatCatalog:   {FieldDescription, FieldThreatDescription},
-	ArtifactTypeGuidanceCatalog: {FieldDescription, FieldGuidelineObjective, FieldStatementText},
+	ArtifactTypeGuidanceCatalog: {FieldDescription, FieldGuidelineObjective, FieldStatementText, FieldStatementTitle},
 }
 
 // reviews is the review table: which review kinds each artifact type has.
@@ -107,7 +108,8 @@ func ValidMode(mode string) bool { return mode == ModeGenerate || mode == ModePo
 // FieldControlObjective, RequirementContext for FieldAssessmentRequirement,
 // ThreatDescriptionContext for FieldThreatDescription,
 // GuidelineObjectiveContext for FieldGuidelineObjective, StatementContext
-// for FieldStatementText. Nothing in it is persisted or logged by the hub.
+// for FieldStatementText and FieldStatementTitle. Nothing in it is persisted
+// or logged by the hub.
 type PolishRequest struct {
 	ArtifactType string          `json:"artifact_type"`
 	Field        string          `json:"field"`
@@ -201,10 +203,12 @@ type ThreatDescriptionContext struct {
 
 // Requirement is one assessment requirement: the control's own in an
 // ObjectiveContext, a sibling in a RequirementContext. The guidance catalog
-// contexts carry a guideline's statements in the same shape (ID and Text;
-// Applicability stays empty), so one list type serves both editors.
+// contexts carry a guideline's statements in the same shape (ID and Text,
+// plus Title when the statement has one; Applicability stays empty), so one
+// list type serves both editors.
 type Requirement struct {
 	ID            string   `json:"id"`
+	Title         string   `json:"title,omitempty"`
 	Text          string   `json:"text"`
 	Applicability []string `json:"applicability,omitempty"`
 }
@@ -271,12 +275,16 @@ type GuidelineObjectiveContext struct {
 	Siblings   []GuidelineSummary `json:"siblings,omitempty"`
 }
 
-// StatementContext is PolishRequest.Context for FieldStatementText, the
-// GuidanceCatalog twin of RequirementContext: the parent guideline's
-// objective is the content source and Siblings, every other non-blank
-// statement (the same guideline's first, then the rest of the catalog's),
-// are the style pattern. The row being written never appears in Siblings;
-// its own text travels as PolishRequest.Current. Clients cap Siblings.
+// StatementContext is PolishRequest.Context for FieldStatementText and
+// FieldStatementTitle, the GuidanceCatalog twin of RequirementContext. For
+// the text, the parent guideline's objective is the content source and
+// Siblings, every other non-blank statement (the same guideline's first,
+// then the rest of the catalog's), are the style pattern; the row's own
+// text travels as PolishRequest.Current. For the title, the statement's
+// own text is the content (Statement.Text), Siblings are the statements
+// that have a title (each with its Title and Text, so the pattern from
+// text to title is visible), and the row's own title is Current. The row
+// being written never appears in Siblings. Clients cap Siblings.
 type StatementContext struct {
 	Catalog   CatalogSummary `json:"catalog"`
 	Guideline struct {
@@ -288,6 +296,7 @@ type StatementContext struct {
 	Statement struct {
 		ID    string `json:"id,omitempty"`
 		Title string `json:"title,omitempty"`
+		Text  string `json:"text,omitempty"`
 	} `json:"statement"`
 	Siblings []Requirement `json:"siblings,omitempty"`
 }
