@@ -10,7 +10,11 @@
 // client's.
 package assist
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/revanite-io/grc-store-protocol/draft"
+)
 
 // ProviderAnthropic is the one provider accepted today. The provider field
 // exists from day one so a second one is additive.
@@ -36,11 +40,12 @@ type CredentialStatus struct {
 }
 
 // Artifact types, fields and modes a polish request may name. The hub owns
-// one prompt template per (artifact type, field, mode).
+// one prompt template per (artifact type, field, mode). The types are the
+// draft package's: the set with a web editor is defined once, there.
 const (
-	ArtifactTypeControlCatalog  = "ControlCatalog"
-	ArtifactTypeThreatCatalog   = "ThreatCatalog"
-	ArtifactTypeGuidanceCatalog = "GuidanceCatalog"
+	ArtifactTypeControlCatalog  = draft.ArtifactTypeControlCatalog
+	ArtifactTypeThreatCatalog   = draft.ArtifactTypeThreatCatalog
+	ArtifactTypeGuidanceCatalog = draft.ArtifactTypeGuidanceCatalog
 
 	FieldDescription           = "description"                 // the catalog's metadata.description, every type
 	FieldControlObjective      = "control.objective"           // ControlCatalog: one control's objective
@@ -71,7 +76,7 @@ var reviews = map[string][]string{
 }
 
 // artifactTypes is the order the hub lists the types in, for messages.
-var artifactTypes = []string{ArtifactTypeControlCatalog, ArtifactTypeThreatCatalog, ArtifactTypeGuidanceCatalog}
+var artifactTypes = draft.ArtifactTypes()
 
 // ValidArtifactType reports whether artifactType is one the hub drafts.
 func ValidArtifactType(artifactType string) bool { _, ok := fields[artifactType]; return ok }

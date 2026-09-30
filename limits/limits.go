@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 // Package limits holds producer-facing size limits of the grc.store wire
-// contract — only limits a publisher must honor to avoid rejection. Server-side
-// shaping limits (pagination, request-body caps) and client-side pull caps stay
+// contract — limits a client must honor to avoid rejection, whether it is a
+// publisher pushing a bundle or a web editor saving a draft. Server-side
+// shaping limits (pagination, internal caps) and client-side pull caps stay
 // in their owners; they are not contract.
 package limits
 
@@ -50,3 +51,10 @@ const (
 // four times the polish cap; over it the hub answers 413
 // apierror.AIContextTooLarge before touching the provider.
 const MaxAIReviewRequestBytes = 256 << 10 // 256 KiB
+
+// MaxDraftBodyBytes caps the body of a hub-held draft (POST/PUT
+// /v1/namespaces/{slug}/drafts, hub ADR-0060). Over it the hub answers 413
+// apierror.DraftTooLarge and writes nothing. The body is the editor's own
+// state for one catalog; real catalogs run to a few hundred KiB, so 2 MiB
+// leaves headroom while bounding what one save can put in Postgres.
+const MaxDraftBodyBytes = 2 << 20 // 2 MiB

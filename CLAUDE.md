@@ -21,6 +21,7 @@ belong here. `README.md` is the full contract overview + package glossary — po
 - `refurl` — the "does this url name a hub artifact" rule (`Parse` → namespace/id/version, `IsGrcStoreHost`); hub index, grcli and the frontend mirror all follow its table test
 - `mediatype` — OCI media types (plugin config/binary, Sigstore bundle)
 - `pluginspec` — plugin config-blob schema · `registrytoken` — `GET /v2/token` response
+- `draft` — hub-held drafts: `Draft`/`SaveRequest`/`ListResponse` for `/v1/namespaces/{slug}/drafts`, the draftable types (aliased by `assist`), `ValidBody` (hub ADR-0060)
 - `assist` — AI-assisted drafting: credential request/status, polish request/response and per-field context shapes (hub ADR-0059)
 - `spdx` — license-expression validation + canonicalization (ADR-0036) · `syncapi` — sync request/response shapes
 

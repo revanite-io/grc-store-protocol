@@ -3,6 +3,8 @@
 package assist
 
 import (
+	"github.com/revanite-io/grc-store-protocol/draft"
+
 	"encoding/json"
 	"testing"
 )
@@ -236,4 +238,18 @@ func mustRaw(t *testing.T, v any) json.RawMessage {
 		t.Fatal(err)
 	}
 	return raw
+}
+
+// Every draftable type (draft package) has an AI table here, and the
+// aliased constants are the same strings, so the editors, the draft store
+// and the AI routes never disagree on a type name.
+func TestArtifactTypesCoverDraftable(t *testing.T) {
+	for _, tt := range draft.ArtifactTypes() {
+		if !ValidArtifactType(tt) {
+			t.Errorf("draftable type %q has no assist table", tt)
+		}
+	}
+	if ArtifactTypeControlCatalog != draft.ArtifactTypeControlCatalog || len(ArtifactTypes()) != len(draft.ArtifactTypes()) {
+		t.Error("assist and draft type lists differ")
+	}
 }

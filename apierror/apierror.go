@@ -100,6 +100,10 @@ const (
 	AIProviderUnavailable = "ai_provider_unavailable" // 502 — the provider errored, timed out or returned an unusable body
 	AIContextTooLarge     = "ai_context_too_large"    // 413 — request exceeds limits.MaxAIPolishRequestBytes, MaxAIPolishCurrentBytes or MaxAIReviewRequestBytes
 	AIRateLimited         = "ai_rate_limited"         // 429 — the caller's per-user polish budget is spent; wait a moment
+	// Hub-held drafts (hub ADR-0060): /v1/namespaces/{slug}/drafts.
+	DraftTooLarge = "draft_too_large" // 413 — body exceeds limits.MaxDraftBodyBytes; trim the draft
+	DraftConflict = "draft_conflict"  // 409 — PUT's expected_updated_at is stale: the draft was saved elsewhere; reload before saving again
+
 	// Shared transport / drift codes.
 	CoordinateMismatch = "coordinate_mismatch" // 400 — request body repository != URL coordinate
 	Forbidden          = "forbidden"           // 403 — caller lacks ownership / write authority
