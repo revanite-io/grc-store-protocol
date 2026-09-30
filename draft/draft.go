@@ -15,8 +15,9 @@
 //	DELETE /v1/namespaces/{slug}/drafts/{id}                     → 204
 //
 // The body is the editor's own state, opaque to the hub: any JSON object up
-// to limits.MaxDraftBodyBytes. The hub stores and returns it byte-for-byte
-// and never reads into it; the title travels beside it so a list needs no
+// to limits.MaxDraftBodyBytes. The hub stores it as jsonb and never reads
+// into it — key order and whitespace come back normalised, and an escaped
+// NUL is refused (422) — and the title travels beside it so a list needs no
 // parsing. A PUT that names ExpectedUpdatedAt is refused with 409
 // apierror.DraftConflict when the row has moved on, so two tabs cannot
 // silently overwrite each other.
