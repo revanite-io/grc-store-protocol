@@ -104,6 +104,17 @@ const (
 	DraftTooLarge = "draft_too_large" // 413 — body exceeds limits.MaxDraftBodyBytes; trim the draft
 	DraftConflict = "draft_conflict"  // 409 — PUT's expected_updated_at is stale: the draft was saved elsewhere; reload before saving again
 
+	// Enterprise accounts (hub ADR-0061): /v1/enterprises/* and the owner
+	// argument on POST /v1/namespaces. Enterprise shapes stay hub-internal;
+	// only the codes are shared so clients can branch on them.
+	EnterpriseNotFound           = "enterprise_not_found"            // 404 — no active enterprise with that slug
+	EnterpriseNotAdmin           = "enterprise_not_admin"            // 403 — caller holds no open admin/owner span for the enterprise (membership, owned namespaces, enterprise-owned create)
+	EnterpriseNotOwner           = "enterprise_not_owner"            // 403 — owner-only action (billing report, granting or revoking owner) from an admin or member
+	EnterpriseUserAlreadyManaged = "enterprise_user_already_managed" // 409 — the user already holds an open span with another enterprise; a move is a transfer (REV-419)
+	EnterpriseOwnsNamespaces     = "enterprise_owns_namespaces"      // 409 — archive refused while the enterprise still owns namespaces; transfer them out first
+	NamespacePersonalImmovable   = "namespace_personal_immovable"    // 422 — a personal namespace is always owned by its user and cannot be enterprise-owned
+	EnterpriseArchived           = "enterprise_archived"             // 409 — the enterprise is archived; it confers no authority and accepts no writes
+
 	// Shared transport / drift codes.
 	CoordinateMismatch = "coordinate_mismatch" // 400 — request body repository != URL coordinate
 	Forbidden          = "forbidden"           // 403 — caller lacks ownership / write authority
