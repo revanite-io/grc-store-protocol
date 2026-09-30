@@ -11,7 +11,7 @@
 //	GET    /v1/namespaces/{slug}/drafts[?type=<artifact type>]  → ListResponse (no bodies)
 //	POST   /v1/namespaces/{slug}/drafts                          SaveRequest → Draft (201)
 //	GET    /v1/namespaces/{slug}/drafts/{id}                     → Draft
-//	PUT    /v1/namespaces/{slug}/drafts/{id}                     SaveRequest → Draft
+//	PUT    /v1/namespaces/{slug}/drafts/{id}                     SaveRequest → Draft (no body echoed)
 //	DELETE /v1/namespaces/{slug}/drafts/{id}                     → 204
 //
 // The body is the editor's own state, opaque to the hub: any JSON object up
