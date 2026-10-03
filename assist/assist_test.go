@@ -116,8 +116,12 @@ func TestValidReview(t *testing.T) {
 	if !ValidReview(ArtifactTypeControlCatalog, ReviewEntries) {
 		t.Error("ValidReview(ControlCatalog): entries")
 	}
-	if !ValidReview(ArtifactTypeGuidanceCatalog, ReviewDuplicates) || !ValidReview(ArtifactTypeGuidanceCatalog, ReviewCoverage) || !ValidReview(ArtifactTypeGuidanceCatalog, ReviewEntries) || ValidReview(ArtifactTypeGuidanceCatalog, "polish") {
-		t.Error("ValidReview(GuidanceCatalog): duplicates, coverage and entries")
+	if !ValidReview(ArtifactTypeGuidanceCatalog, ReviewDuplicates) || !ValidReview(ArtifactTypeGuidanceCatalog, ReviewCoverage) || !ValidReview(ArtifactTypeGuidanceCatalog, ReviewEntries) || !ValidReview(ArtifactTypeGuidanceCatalog, ReviewRecommendations) || ValidReview(ArtifactTypeGuidanceCatalog, "polish") {
+		t.Error("ValidReview(GuidanceCatalog): duplicates, coverage, entries and recommendations")
+	}
+	// Only a guidance statement nests recommendations.
+	if ValidReview(ArtifactTypeControlCatalog, ReviewRecommendations) || ValidReview(ArtifactTypeThreatCatalog, ReviewRecommendations) {
+		t.Error("ValidReview: recommendations is GuidanceCatalog only")
 	}
 	entry, _ := json.Marshal(Suggestion{Action: SuggestionAdd, ID: "CN03", Title: "Rotate", Text: "Ensure keys rotate.", Group: "Encryption"})
 	if string(entry) != `{"action":"add","id":"CN03","title":"Rotate","text":"Ensure keys rotate.","group":"Encryption"}` {
@@ -228,6 +232,39 @@ func TestGuidanceContexts(t *testing.T) {
 	cov, _ := json.Marshal(CoverageContext{Catalog: CatalogSummary{Title: "G"}, Guideline: &GuidelineSummary{ID: "GL01", Title: "A", Objective: "o"}, Statements: []Requirement{{ID: "a", Text: "b"}}})
 	if string(cov) != `{"catalog":{"title":"G"},"control":{"id":"","title":"","objective":""},"guideline":{"id":"GL01","title":"A","objective":"o"},"statements":[{"id":"a","text":"b"}]}` {
 		t.Errorf("guidance CoverageContext JSON = %s", cov)
+	}
+}
+
+// A recommendations context round-trips through the review envelope with
+// the statement, its existing recommendations and the style siblings.
+func TestRecommendationsContext(t *testing.T) {
+	ctx := RecommendationsContext{
+		Catalog:         CatalogSummary{Title: "G"},
+		Guideline:       GuidelineSummary{ID: "GL01", Title: "A", Objective: "o"},
+		Statement:       Requirement{ID: "GL01.S1", Title: "Review Source", Text: "Confirm the source can be retrieved."},
+		Recommendations: []string{"Check the release artifacts."},
+		Siblings:        []StatementRecommendations{{Statement: Requirement{ID: "GL01.S2", Text: "x"}, Recommendations: []string{"y"}}},
+	}
+	raw, err := json.Marshal(ReviewRequest{ArtifactType: ArtifactTypeGuidanceCatalog, Kind: ReviewRecommendations, Context: mustRaw(t, ctx)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var back ReviewRequest
+	if err := json.Unmarshal(raw, &back); err != nil {
+		t.Fatal(err)
+	}
+	if back.Kind != "recommendations" {
+		t.Errorf("Kind = %q", back.Kind)
+	}
+	got, _ := json.Marshal(json.RawMessage(back.Context))
+	want := `{"catalog":{"title":"G"},"guideline":{"id":"GL01","title":"A","objective":"o"},"statement":{"id":"GL01.S1","title":"Review Source","text":"Confirm the source can be retrieved."},"recommendations":["Check the release artifacts."],"siblings":[{"statement":{"id":"GL01.S2","text":"x"},"recommendations":["y"]}]}`
+	if string(got) != want {
+		t.Errorf("RecommendationsContext JSON = %s", got)
+	}
+	// "None" is an empty answer with a reason in Note.
+	none, _ := json.Marshal(ReviewResponse{Note: "The statement is already a single check."})
+	if string(none) != `{"note":"The statement is already a single check."}` {
+		t.Errorf("empty recommendations ReviewResponse JSON = %s", none)
 	}
 }
 

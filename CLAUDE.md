@@ -22,7 +22,7 @@ belong here. `README.md` is the full contract overview + package glossary — po
 - `mediatype` — OCI media types (plugin config/binary, Sigstore bundle)
 - `pluginspec` — plugin config-blob schema · `registrytoken` — `GET /v2/token` response
 - `draft` — hub-held drafts: `Draft`/`SaveRequest`/`ListResponse` for `/v1/namespaces/{slug}/drafts`, the draftable types (aliased by `assist`), `ValidBody` (hub ADR-0060)
-- `assist` — AI-assisted drafting: credential request/status, polish request/response and per-field context shapes (hub ADR-0059)
+- `assist` — AI-assisted drafting: credential request/status, polish and review request/response shapes, per-field and per-kind context shapes; review kinds and their per-type allow list live in `assist/assist.go` (hub ADR-0059)
 - `spdx` — license-expression validation + canonicalization (ADR-0036) · `syncapi` — sync request/response shapes
 
 ## Gotchas — editing here is high-blast-radius
