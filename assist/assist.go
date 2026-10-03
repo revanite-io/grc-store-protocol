@@ -68,11 +68,12 @@ var fields = map[string][]string{
 
 // reviews is the review table: which review kinds each artifact type has.
 // A threat has no objective/requirements pair, so no coverage review; a
-// guideline's objective/statements pair gets one like a control's.
+// guideline's objective/statements pair gets one like a control's. Only a
+// guidance statement carries nested recommendations.
 var reviews = map[string][]string{
 	ArtifactTypeControlCatalog:  {ReviewDuplicates, ReviewCoverage, ReviewEntries},
 	ArtifactTypeThreatCatalog:   {ReviewDuplicates, ReviewEntries},
-	ArtifactTypeGuidanceCatalog: {ReviewDuplicates, ReviewCoverage, ReviewEntries},
+	ArtifactTypeGuidanceCatalog: {ReviewDuplicates, ReviewCoverage, ReviewEntries, ReviewRecommendations},
 }
 
 // artifactTypes is the order the hub lists the types in, for messages.
@@ -313,6 +314,8 @@ const (
 	ReviewDuplicates = "duplicates" // identical or functionally indistinguishable requirements anywhere in the catalog
 	ReviewCoverage   = "coverage"   // the requirements one control's objective still lacks, plus rewrites of ones that fall short
 	ReviewEntries    = "entries"    // the controls (or threats) the catalog's description and groups still lack
+
+	ReviewRecommendations = "recommendations" // recommendations to nest under one guidance statement, or none (REV-491)
 )
 
 // ValidReview reports whether kind is a review the hub has a template for
@@ -321,7 +324,8 @@ func ValidReview(artifactType, kind string) bool { return has(reviews[artifactTy
 
 // ReviewRequest is the body of POST /v1/ai/review. Context's shape depends
 // on Kind: DuplicatesContext for ReviewDuplicates, CoverageContext for
-// ReviewCoverage, EntriesContext for ReviewEntries. Nothing in it is persisted or logged by the hub. The
+// ReviewCoverage, EntriesContext for ReviewEntries, RecommendationsContext
+// for ReviewRecommendations. Nothing in it is persisted or logged by the hub. The
 // body is capped by limits.MaxAIReviewRequestBytes.
 type ReviewRequest struct {
 	ArtifactType string          `json:"artifact_type"`
@@ -399,9 +403,33 @@ type EntriesContext struct {
 	Guidelines []GuidelineSummary `json:"guidelines,omitempty"`
 }
 
+// StatementRecommendations is one guidance statement with the
+// recommendations already nested under it.
+type StatementRecommendations struct {
+	Statement       Requirement `json:"statement"`
+	Recommendations []string    `json:"recommendations,omitempty"`
+}
+
+// RecommendationsContext is ReviewRequest.Context for ReviewRecommendations:
+// one guidance statement (the content; it needs an authored ID, since a
+// recommendation attaches to its statement by ID), the recommendations it
+// already has (so the answer does not repeat them), and Siblings, other
+// statements with their recommendations as the style pattern, capped by the
+// client. The answer only adds: each Suggestion is an add whose Text is one
+// recommendation. An empty Suggestions list with a Note means the statement
+// needs none, and Note says why.
+type RecommendationsContext struct {
+	Catalog         CatalogSummary             `json:"catalog"`
+	Guideline       GuidelineSummary           `json:"guideline"`
+	Statement       Requirement                `json:"statement"`
+	Recommendations []string                   `json:"recommendations,omitempty"`
+	Siblings        []StatementRecommendations `json:"siblings,omitempty"`
+}
+
 // ReviewResponse is the body of POST /v1/ai/review. Duplicates is set for
 // ReviewDuplicates (empty means none found), Suggestions for
-// ReviewCoverage and ReviewEntries (empty means nothing is missing). Note is a short
+// ReviewCoverage, ReviewEntries and ReviewRecommendations (empty means
+// nothing is missing). Note is a short
 // status for the author, as on PolishResponse.
 type ReviewResponse struct {
 	Duplicates  []DuplicateGroup `json:"duplicates,omitempty"`
@@ -427,7 +455,8 @@ const (
 // client shows it for acceptance; nothing is written until the author
 // agrees. A coverage suggestion is a requirement (Text, Applicability) or a
 // statement (Text); an entries suggestion is a control, threat or guideline
-// (Title, Text as its objective or description, Group), always an add.
+// (Title, Text as its objective or description, Group), always an add; a
+// recommendations suggestion is one recommendation (Text), always an add.
 type Suggestion struct {
 	Action string `json:"action"`
 	// ID: on add, a proposed ID in the siblings' pattern (may be empty);
