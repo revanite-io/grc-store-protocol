@@ -91,18 +91,24 @@ const (
 	// AI-assisted drafting (hub ADR-0059): the per-user provider credential
 	// (/v1/me/ai-credential) and POST /v1/ai/polish. The hub makes the
 	// provider call with the caller's own stored token; these codes tell the
-	// client which side to fix. Every route is hub-admin only for now (the
-	// drafting flow's gate), so 401/403 there are the usual unauthorized /
-	// forbidden.
+	// client which side to fix. Every route sits behind the drafting gate
+	// (PaidFeaturesRequired below), so 401/403 there are unauthorized /
+	// paid_features_required.
 	AINotEnabled          = "ai_not_enabled"          // 501 — the hub has no credential-encryption key (AI_CREDENTIAL_KEY); nothing AI-related is available
 	AICredentialMissing   = "ai_credential_missing"   // 412 — the caller has not stored a provider token; add one on the settings page
 	AIProviderRejected    = "ai_provider_rejected"    // 422 — the provider refused the stored token (401/403 upstream); rotate it
 	AIProviderUnavailable = "ai_provider_unavailable" // 502 — the provider errored, timed out or returned an unusable body
 	AIContextTooLarge     = "ai_context_too_large"    // 413 — request exceeds limits.MaxAIPolishRequestBytes, MaxAIPolishCurrentBytes or MaxAIReviewRequestBytes
 	AIRateLimited         = "ai_rate_limited"         // 429 — the caller's per-user polish budget is spent; wait a moment
-	// Hub-held drafts (hub ADR-0060): /v1/namespaces/{slug}/drafts.
-	DraftTooLarge = "draft_too_large" // 413 — body exceeds limits.MaxDraftBodyBytes; trim the draft
-	DraftConflict = "draft_conflict"  // 409 — PUT's expected_updated_at is stale: the draft was saved elsewhere; reload before saving again
+	// Hub-held drafts (hub ADR-0060): /v1/namespaces/{slug}/drafts. The
+	// drafting surface (drafts, /v1/ai/*, /v1/me/ai-credential) is an
+	// enterprise-account feature (REV-448); the two 403s tell the UI which
+	// of its two messages to show.
+	PaidFeaturesRequired = "paid_features_required" // 403 — caller holds no open span in an active enterprise and is not a hub admin: "You do not have access to paid account features"
+	NamespaceNotMember   = "namespace_not_member"   // 403 — caller may draft but is not a member of this namespace: "You do not have access to this namespace"
+	DraftTooLarge        = "draft_too_large"        // 413 — body exceeds limits.MaxDraftBodyBytes; trim the draft
+	DraftConflict        = "draft_conflict"         // 409 — PUT's expected_updated_at is stale: the draft was saved elsewhere; reload before saving again
+	DraftLimitReached    = "draft_limit_reached"    // 409 — the namespace already holds limits.MaxDraftsPerNamespace drafts; delete one before creating another
 
 	// Enterprise accounts (hub ADR-0061): /v1/enterprises/* and the owner
 	// argument on POST /v1/namespaces. Enterprise shapes stay hub-internal;

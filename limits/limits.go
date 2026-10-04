@@ -58,3 +58,9 @@ const MaxAIReviewRequestBytes = 256 << 10 // 256 KiB
 // state for one catalog; real catalogs run to a few hundred KiB, so 2 MiB
 // leaves headroom while bounding what one save can put in Postgres.
 const MaxDraftBodyBytes = 2 << 20 // 2 MiB
+
+// MaxDraftsPerNamespace caps the live drafts one namespace may hold (POST
+// /v1/namespaces/{slug}/drafts answers 409 apierror.DraftLimitReached at the
+// cap). Drafts are shared working copies, not an archive; 20 is the PO's
+// ruling (REV-448, 2026-10-02), easier to raise than to lower.
+const MaxDraftsPerNamespace = 20
