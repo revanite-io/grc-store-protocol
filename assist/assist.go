@@ -76,8 +76,18 @@ var reviews = map[string][]string{
 	ArtifactTypeGuidanceCatalog: {ReviewDuplicates, ReviewCoverage, ReviewEntries, ReviewRecommendations},
 }
 
-// artifactTypes is the order the hub lists the types in, for messages.
-var artifactTypes = draft.ArtifactTypes()
+// artifactTypes is the order the hub lists the types in, for messages: the
+// draftable types that have AI assist (a template table entry). A type can
+// be draftable without assist, so this filters rather than copies.
+var artifactTypes = func() []string {
+	var out []string
+	for _, t := range draft.ArtifactTypes() {
+		if _, ok := fields[t]; ok {
+			out = append(out, t)
+		}
+	}
+	return out
+}()
 
 // ValidArtifactType reports whether artifactType is one the hub drafts.
 func ValidArtifactType(artifactType string) bool { _, ok := fields[artifactType]; return ok }
