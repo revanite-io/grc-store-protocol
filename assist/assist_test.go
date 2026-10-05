@@ -277,16 +277,29 @@ func mustRaw(t *testing.T, v any) json.RawMessage {
 	return raw
 }
 
-// Every draftable type (draft package) has an AI table here, and the
-// aliased constants are the same strings, so the editors, the draft store
-// and the AI routes never disagree on a type name.
+// Every assist type is draftable, the aliased constants are the same
+// strings, and a draftable type without AI assist (CapabilityCatalog) is
+// left out of the assist list, so the editors, the draft store and the AI
+// routes never disagree on a type name.
 func TestArtifactTypesCoverDraftable(t *testing.T) {
+	draftable := map[string]bool{}
 	for _, tt := range draft.ArtifactTypes() {
-		if !ValidArtifactType(tt) {
-			t.Errorf("draftable type %q has no assist table", tt)
+		draftable[tt] = true
+	}
+	for _, tt := range ArtifactTypes() {
+		if !draftable[tt] {
+			t.Errorf("assist type %q is not draftable", tt)
 		}
 	}
-	if ArtifactTypeControlCatalog != draft.ArtifactTypeControlCatalog || len(ArtifactTypes()) != len(draft.ArtifactTypes()) {
-		t.Error("assist and draft type lists differ")
+	if ArtifactTypeControlCatalog != draft.ArtifactTypeControlCatalog {
+		t.Error("assist and draft constants differ")
+	}
+	if ValidArtifactType(draft.ArtifactTypeCapabilityCatalog) {
+		t.Error("CapabilityCatalog has no assist table yet; it must not be valid here")
+	}
+	for _, tt := range ArtifactTypes() {
+		if tt == draft.ArtifactTypeCapabilityCatalog {
+			t.Error("assist lists CapabilityCatalog without a template table")
+		}
 	}
 }
