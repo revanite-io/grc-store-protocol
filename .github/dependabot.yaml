@@ -1,0 +1,35 @@
+# Monthly and grouped to keep Actions minutes down: every Dependabot PR runs
+# full CI, then again after merge. Security updates are not grouped
+# (applies-to: version-updates) and still open immediately. gomod has
+# nothing to update while the module stays dependency-free (CI enforces
+# that); it is here so a dependency, if one is ever allowed, is tracked.
+version: 2
+updates:
+  - package-ecosystem: "gomod"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      dependencies:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      dependencies:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+          # Action majors are SHA-pinned bumps reviewed together; one PR
+          # instead of one per action.
+          - "major"

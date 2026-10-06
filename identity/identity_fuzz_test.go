@@ -32,7 +32,7 @@ func FuzzParseKeyless(f *testing.F) {
 				t.Fatalf("round trip lost data: (%q, %q) -> %q -> (%q, %q)", issuer, san, canonical, gotIssuer, gotPath)
 			}
 		}
-		ParseKeyless(issuer) // must not panic on arbitrary input
-		ParseKeyless(san)
+		_, _, _ = ParseKeyless(issuer) // must not panic on arbitrary input
+		_, _, _ = ParseKeyless(san)
 	})
 }

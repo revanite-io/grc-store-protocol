@@ -1,7 +1,8 @@
 module github.com/revanite-io/grc-store-protocol
 
-// Minimum Go: the code uses only strings.Cut (go 1.18). The floor is set to 1.22
-// for toolchain hygiene — deliberately NOT an author's machine version, so
-// external consumers aren't forced onto a newer toolchain. Do not bump without a
-// real language-feature reason.
-go 1.22
+// Minimum Go: the code itself needs only go 1.18 (strings.Cut). The floor
+// tracks the OLDEST Go release still getting security fixes (Go supports the
+// two newest), not an author's machine version, so consumers aren't pushed
+// past a supported toolchain. Raise it when that release goes out of support;
+// CI tests the floor and the newest release.
+go 1.26
