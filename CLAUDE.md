@@ -10,7 +10,7 @@ belong here. `README.md` is the full contract overview + package glossary — po
 ## Dev loop
 - `go test ./...` (add `-count=1` to skip cache) · `go vet ./...` · `gofmt -l .` (format check is a CI gate)
 - **Zero-dependency invariant**: `go mod tidy` must be a no-op — any added dependency is rejected in CI.
-- No Makefile. CI matrix: Go 1.22 (floor) and a recent toolchain (`.github/workflows/ci.yml`).
+- No Makefile. CI matrix: the go.mod floor (oldest supported Go release, 1.26) and the newest (1.27) (`.github/workflows/ci.yml`).
 
 ## Packages (each defines one wire concept)
 - `apierror` — JSON error envelope + stable error-code vocabulary
