@@ -64,3 +64,12 @@ const MaxDraftBodyBytes = 2 << 20 // 2 MiB
 // cap). Drafts are shared working copies, not an archive; 20 is the PO's
 // ruling (REV-448, 2026-10-02), easier to raise than to lower.
 const MaxDraftsPerNamespace = 20
+
+// MaxTargetGroupRequestBytes caps the POST /v1/targets/{ns}/groups/{slug}
+// body (hub ADR-0091). Over it the hub answers 413
+// apierror.TargetGroupTooLarge and writes nothing.
+// The count of members per group is deliberately not capped (ADR-0091
+// Q16): a group may one day hold a piece of software and all of its
+// dependencies. 1 MiB fits tens of thousands of target ids, so this
+// bounds one request without becoming that cap.
+const MaxTargetGroupRequestBytes = 1 << 20 // 1 MiB
