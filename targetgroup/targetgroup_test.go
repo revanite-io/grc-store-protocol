@@ -53,3 +53,61 @@ func TestUpsertRequestDecode(t *testing.T) {
 		t.Errorf("decode: %+v (%v)", req, err)
 	}
 }
+
+// Producers set empty slices; those must go out as [], never null.
+func TestEmptyArraysMarshalAsArrays(t *testing.T) {
+	cases := map[string]struct {
+		v    any
+		want []string
+	}{
+		"view": {View{Group: Group{Members: []Member{}}, Members: []MemberView{{Evaluations: []EvaluationView{}}}},
+			[]string{`"group":{`, `"members":[]`, `"evaluations":[]`}},
+		"list": {ListResponse{Items: []Group{}}, []string{`"items":[]`, `"next_cursor":null`}},
+	}
+	for name, c := range cases {
+		out, err := json.Marshal(c.v)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, key := range c.want {
+			if !strings.Contains(string(out), key) {
+				t.Errorf("%s: missing %s in %s", name, key, out)
+			}
+		}
+	}
+}
+
+func TestOffHubEvaluationView(t *testing.T) {
+	out, err := json.Marshal(EvaluationView{CatalogRefID: "EXT"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, key := range []string{`"catalog_namespace":null`, `"catalog_id":null`, `"plugin_declared_catalog_version":null`} {
+		if !strings.Contains(string(out), key) {
+			t.Errorf("missing %s in %s", key, out)
+		}
+	}
+}
+
+// A missing or null members decodes like [], an empty group.
+func TestUpsertRequestNoMembers(t *testing.T) {
+	for _, body := range []string{`{"name":"P"}`, `{"name":"P","members":null}`, `{"name":"P","members":[]}`} {
+		var req UpsertRequest
+		if err := json.Unmarshal([]byte(body), &req); err != nil || len(req.Members) != 0 {
+			t.Errorf("%s: %+v (%v)", body, req, err)
+		}
+	}
+}
+
+func TestIsReservedTargetID(t *testing.T) {
+	for _, id := range []string{"artifacts", "admin", "groups"} {
+		if !IsReservedTargetID(id) {
+			t.Errorf("%s must be reserved", id)
+		}
+	}
+	for _, id := range []string{"sdk", "group", "Groups", ""} {
+		if IsReservedTargetID(id) {
+			t.Errorf("%s must not be reserved", id)
+		}
+	}
+}

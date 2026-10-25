@@ -23,7 +23,8 @@
 // A malformed request (a slug that is not a hub slug, an empty name, a
 // member listed twice) is 400 validation_failed.
 //
-// Every array in these shapes is always an array, never null.
+// Every array in these shapes is always an array, never null. A nil Go
+// slice marshals as null, so producers must set each one to an empty slice.
 //
 // A group names no catalog and has no result of its own. Each member's
 // evaluations are listed as they are, one per (catalog, evaluator plugin),
@@ -35,6 +36,17 @@ import "time"
 // ReservedTargetID is the target id the group routes take: no target may
 // be named "groups", so /v1/targets/{ns}/groups is never a target.
 const ReservedTargetID = "groups"
+
+// IsReservedTargetID reports whether id is a path segment under
+// /v1/targets/{ns}/ that no target may take: "artifacts" and "admin" for
+// the hub's other target routes, and ReservedTargetID for groups.
+func IsReservedTargetID(id string) bool {
+	switch id {
+	case "artifacts", "admin", ReservedTargetID:
+		return true
+	}
+	return false
+}
 
 // Group is a target group's definition.
 type Group struct {
@@ -60,7 +72,8 @@ type Member struct {
 // UpsertRequest is the POST body: it creates the group or replaces its
 // definition, membership included. Members are target ids in the group's
 // namespace, in display order, each at most once. An empty list is a
-// valid group with no members yet.
+// valid group with no members yet. A missing or null members means the
+// same: the POST replaces membership, so it leaves the group with none.
 type UpsertRequest struct {
 	Name        string   `json:"name"`
 	Description string   `json:"description,omitempty"`
