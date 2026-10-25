@@ -5,4 +5,4 @@ module github.com/revanite-io/grc-store-protocol
 // two newest), not an author's machine version, so consumers aren't pushed
 // past a supported toolchain. Raise it when that release goes out of support;
 // CI tests the floor and the newest release.
-go 1.26
+go 1.26.10
