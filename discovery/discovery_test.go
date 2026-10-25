@@ -7,10 +7,11 @@ import (
 	"testing"
 )
 
-// A false policy field must stay on the wire, so clients can tell it from an
-// older hub that does not serve the field.
-func TestPolicyFieldsAlwaysPresent(t *testing.T) {
-	b, err := json.Marshal(Document{})
+// Each policy field lands on its own key, and an older hub's document, which
+// has none of them, decodes to nil rather than false.
+func TestPolicyFields(t *testing.T) {
+	f, tr := false, true
+	b, err := json.Marshal(Document{PrivateOnly: &tr, NamespacePrefixRequired: &f, AnonymousReads: &tr, NamespaceSelfService: &f, AccessRequests: &tr})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,9 +19,18 @@ func TestPolicyFieldsAlwaysPresent(t *testing.T) {
 	if err := json.Unmarshal(b, &m); err != nil {
 		t.Fatal(err)
 	}
-	for _, k := range []string{"private_only", "namespace_prefix_required", "anonymous_reads", "namespace_self_service", "access_requests"} {
-		if v, ok := m[k]; !ok || v != false {
-			t.Errorf("%s = %v, %v; want false, present", k, v, ok)
+	want := map[string]bool{"private_only": true, "namespace_prefix_required": false, "anonymous_reads": true, "namespace_self_service": false, "access_requests": true}
+	for k, w := range want {
+		if v, ok := m[k]; !ok || v != w {
+			t.Errorf("%s = %v, %v; want %v, present", k, v, ok, w)
 		}
+	}
+
+	var old Document
+	if err := json.Unmarshal([]byte(`{"hub_url":"https://hub.example"}`), &old); err != nil {
+		t.Fatal(err)
+	}
+	if old.PrivateOnly != nil || old.NamespacePrefixRequired != nil || old.AnonymousReads != nil || old.NamespaceSelfService != nil || old.AccessRequests != nil {
+		t.Errorf("older hub's document decoded policy fields as set: %+v", old)
 	}
 }
