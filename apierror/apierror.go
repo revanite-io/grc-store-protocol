@@ -121,8 +121,8 @@ const (
 	NamespacePersonalImmovable   = "namespace_personal_immovable"    // 422 — a personal namespace is always owned by its user and cannot be enterprise-owned
 	EnterpriseArchived           = "enterprise_archived"             // 409 — the enterprise is archived; it confers no authority and accepts no writes
 
-	// Private-only hubs (hub ADR-0096): a hub deployed with HUB_PRIVATE_ONLY
-	// refuses every way to make a namespace public.
+	// Private-only hubs: returned when a hub deployed with HUB_PRIVATE_ONLY
+	// refuses a public namespace, on create or on a switch to public.
 	PrivateOnlyHub = "private_only_hub" // 400 — POST /v1/namespaces or PATCH /v1/namespaces/{slug} asked for visibility public on a private-only hub
 
 	// Shared transport / drift codes.
