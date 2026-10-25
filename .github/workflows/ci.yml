@@ -20,7 +20,7 @@ jobs:
       matrix:
         # The declared go.mod floor AND the newest release — a zero-dependency
         # contract module must build on the minimum it advertises.
-        go: ['1.26', '1.27']
+        go: ['1.26.10', '1.27']
     steps:
       - uses: step-security/harden-runner@351661ca32ac09a36dc5ee2d536e3128f2a3c8ed # v2.22.0
         with:
