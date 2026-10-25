@@ -121,6 +121,11 @@ const (
 	NamespacePersonalImmovable   = "namespace_personal_immovable"    // 422 — a personal namespace is always owned by its user and cannot be enterprise-owned
 	EnterpriseArchived           = "enterprise_archived"             // 409 — the enterprise is archived; it confers no authority and accepts no writes
 
+	// Target groups (hub ADR-0091): /v1/targets/{ns}/groups/{slug}.
+	TargetGroupArchived      = "target_group_archived"       // 409 — POST to an archived group's slug; the slug stays taken and unarchiving is not supported
+	TargetGroupMemberInvalid = "target_group_member_invalid" // 422 — a member is not a target in the group's namespace, or is an archived target that is not already a member
+	TargetGroupTooLarge      = "target_group_too_large"      // 413 — POST body exceeds limits.MaxTargetGroupRequestBytes
+
 	// Shared transport / drift codes.
 	CoordinateMismatch = "coordinate_mismatch" // 400 — request body repository != URL coordinate
 	Forbidden          = "forbidden"           // 403 — caller lacks ownership / write authority
