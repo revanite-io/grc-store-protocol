@@ -113,13 +113,18 @@ const (
 	// Enterprise accounts (hub ADR-0061): /v1/enterprises/* and the owner
 	// argument on POST /v1/namespaces. Enterprise shapes stay hub-internal;
 	// only the codes are shared so clients can branch on them.
-	EnterpriseNotFound           = "enterprise_not_found"            // 404 — no active enterprise with that slug
-	EnterpriseNotAdmin           = "enterprise_not_admin"            // 403 — caller holds no open admin/owner span for the enterprise (membership, owned namespaces, enterprise-owned create)
-	EnterpriseNotOwner           = "enterprise_not_owner"            // 403 — owner-only action (billing report, granting or revoking owner) from an admin or member
-	EnterpriseUserAlreadyManaged = "enterprise_user_already_managed" // 409 — the user already holds an open span with another enterprise; a move is a transfer (REV-419)
-	EnterpriseOwnsNamespaces     = "enterprise_owns_namespaces"      // 409 — archive refused while the enterprise still owns namespaces; transfer them out first
-	NamespacePersonalImmovable   = "namespace_personal_immovable"    // 422 — a personal namespace is always owned by its user and cannot be enterprise-owned
-	EnterpriseArchived           = "enterprise_archived"             // 409 — the enterprise is archived; it confers no authority and accepts no writes
+	EnterpriseNotFound          = "enterprise_not_found"           // 404 — no active enterprise with that slug
+	EnterpriseNotAdmin          = "enterprise_not_admin"           // 403 — caller holds no open admin/owner span for the enterprise (membership, owned namespaces, enterprise-owned create)
+	EnterpriseNotOwner          = "enterprise_not_owner"           // 403 — owner-only action (billing report, granting or revoking owner) from an admin or member
+	EnterpriseUserAlreadyMember = "enterprise_user_already_member" // 409 — the user already holds an open span in this enterprise (hub ADR-0069); spans in other enterprises never conflict
+	EnterpriseOwnsNamespaces    = "enterprise_owns_namespaces"     // 409 — archive refused while the enterprise still owns namespaces; transfer them out first
+	NamespacePersonalImmovable  = "namespace_personal_immovable"   // 422 — a personal namespace is always owned by its user and cannot be enterprise-owned
+	EnterpriseArchived          = "enterprise_archived"            // 409 — the enterprise is archived; it confers no authority and accepts no writes
+
+	// Deprecated: never emitted since hub ADR-0069 — a user may hold spans in
+	// any number of enterprises, so "already managed elsewhere" is no longer a
+	// conflict. Use EnterpriseUserAlreadyMember. Kept so v0.23.0 importers compile.
+	EnterpriseUserAlreadyManaged = "enterprise_user_already_managed"
 
 	// Private-only hubs: returned when a hub deployed with HUB_PRIVATE_ONLY
 	// refuses a public namespace, on create or on a switch to public.
