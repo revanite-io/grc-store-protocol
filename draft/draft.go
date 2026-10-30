@@ -31,15 +31,18 @@ import (
 
 // Artifact types the hub drafts today — the ones with a web editor. The
 // assist package aliases these so the AI tables and the draft store agree;
-// a draftable type need not have AI assist (CapabilityCatalog has none yet).
+// a draftable type need not have AI assist (CapabilityCatalog, Policy and
+// EvaluationLog have none yet).
 const (
 	ArtifactTypeControlCatalog    = "ControlCatalog"
 	ArtifactTypeThreatCatalog     = "ThreatCatalog"
 	ArtifactTypeGuidanceCatalog   = "GuidanceCatalog"
 	ArtifactTypeCapabilityCatalog = "CapabilityCatalog"
+	ArtifactTypePolicy            = "Policy"
+	ArtifactTypeEvaluationLog     = "EvaluationLog"
 )
 
-var artifactTypes = []string{ArtifactTypeControlCatalog, ArtifactTypeThreatCatalog, ArtifactTypeGuidanceCatalog, ArtifactTypeCapabilityCatalog}
+var artifactTypes = []string{ArtifactTypeControlCatalog, ArtifactTypeThreatCatalog, ArtifactTypeGuidanceCatalog, ArtifactTypeCapabilityCatalog, ArtifactTypePolicy, ArtifactTypeEvaluationLog}
 
 // ArtifactTypes lists the draftable types in a stable order, for messages.
 func ArtifactTypes() []string { return append([]string(nil), artifactTypes...) }

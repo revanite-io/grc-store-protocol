@@ -16,10 +16,12 @@ func TestArtifactTypes(t *testing.T) {
 			t.Errorf("%q listed but not valid", tt)
 		}
 	}
-	if !ValidArtifactType(ArtifactTypeCapabilityCatalog) {
-		t.Error("CapabilityCatalog has a web editor and must be draftable")
+	for _, tt := range []string{ArtifactTypeCapabilityCatalog, ArtifactTypePolicy, ArtifactTypeEvaluationLog} {
+		if !ValidArtifactType(tt) {
+			t.Errorf("%s has a web editor and must be draftable", tt)
+		}
 	}
-	if ValidArtifactType("EvaluationLog") || ValidArtifactType("") {
+	if ValidArtifactType("EnforcementLog") || ValidArtifactType("") {
 		t.Error("non-editor types must be invalid")
 	}
 }
