@@ -294,12 +294,14 @@ func TestArtifactTypesCoverDraftable(t *testing.T) {
 	if ArtifactTypeControlCatalog != draft.ArtifactTypeControlCatalog {
 		t.Error("assist and draft constants differ")
 	}
-	if ValidArtifactType(draft.ArtifactTypeCapabilityCatalog) {
-		t.Error("CapabilityCatalog has no assist table yet; it must not be valid here")
-	}
-	for _, tt := range ArtifactTypes() {
-		if tt == draft.ArtifactTypeCapabilityCatalog {
-			t.Error("assist lists CapabilityCatalog without a template table")
+	for _, bare := range []string{draft.ArtifactTypeCapabilityCatalog, draft.ArtifactTypePolicy, draft.ArtifactTypeEvaluationLog} {
+		if ValidArtifactType(bare) {
+			t.Errorf("%s has no assist table yet; it must not be valid here", bare)
+		}
+		for _, tt := range ArtifactTypes() {
+			if tt == bare {
+				t.Errorf("assist lists %s without a template table", tt)
+			}
 		}
 	}
 }
