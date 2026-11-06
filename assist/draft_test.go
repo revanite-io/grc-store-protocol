@@ -26,7 +26,7 @@ func TestDraftUpstreamTable(t *testing.T) {
 	for _, at := range types {
 		up, ok := want[at]
 		if !ok || !ValidDraftType(at) || DraftUpstream(at) != up {
-			t.Errorf("%s: upstream %q, want %q", at, DraftUpstream(at), up)
+			t.Errorf("%s: in table=%v valid=%v upstream=%q, want %q", at, ok, ValidDraftType(at), DraftUpstream(at), up)
 		}
 		if up != "" && !ValidDraftType(up) {
 			t.Errorf("%s: upstream %s is not itself draftable", at, up)
@@ -34,7 +34,7 @@ func TestDraftUpstreamTable(t *testing.T) {
 	}
 	for _, bad := range []string{draft.ArtifactTypeEvaluationLog, "", "controlcatalog"} {
 		if ValidDraftType(bad) || DraftUpstream(bad) != "" {
-			t.Errorf("ValidDraftType(%q) = true", bad)
+			t.Errorf("%q: valid=%v upstream=%q, want false and \"\"", bad, ValidDraftType(bad), DraftUpstream(bad))
 		}
 	}
 	types[0] = "x"
@@ -68,5 +68,36 @@ func TestDraftJobWire(t *testing.T) {
 	}
 	if got := string(b); got != `{"state":"failed","attempt":1,"error":{"code":"ai_draft_timeout","detail":"d"}}` {
 		t.Errorf("failed job = %s", got)
+	}
+}
+
+func TestDraftRequestAndListWire(t *testing.T) {
+	b, err := json.Marshal(DraftRequest{
+		Namespace: "acme", ArtifactType: draft.ArtifactTypePolicy,
+		Target:     DraftTarget{ID: "p", Version: "1.0.0"},
+		Answers:    []DraftAnswer{{Question: "q", Answer: "a"}},
+		Upstream:   json.RawMessage(`{}`),
+		References: []DraftReference{{ArtifactType: draft.ArtifactTypeControlCatalog, Namespace: "acme", ID: "c", Version: "1", Title: "C"}},
+		Previous:   json.RawMessage(`{}`),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(b); got != `{"namespace":"acme","artifact_type":"Policy","target":{"id":"p","version":"1.0.0"},"answers":[{"question":"q","answer":"a"}],"upstream":{},"references":[{"artifact_type":"ControlCatalog","namespace":"acme","id":"c","version":"1","title":"C"}],"previous":{}}` {
+		t.Errorf("full request = %s", got)
+	}
+	b, err = json.Marshal(DraftRequest{Namespace: "acme", ArtifactType: draft.ArtifactTypeGuidanceCatalog, Answers: []DraftAnswer{}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(b); got != `{"namespace":"acme","artifact_type":"GuidanceCatalog","target":{"id":"","version":""},"answers":[]}` {
+		t.Errorf("answers-only request = %s", got)
+	}
+	b, err = json.Marshal([]any{DraftStarted{JobID: "j"}, DraftListItem{JobID: "j", Namespace: "acme", ArtifactType: "RiskCatalog", State: DraftStateFailed, CreatedAt: "2026-11-06T00:00:00Z"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(b); got != `[{"job_id":"j"},{"job_id":"j","namespace":"acme","artifact_type":"RiskCatalog","state":"failed","created_at":"2026-11-06T00:00:00Z"}]` {
+		t.Errorf("started and list item = %s", got)
 	}
 }

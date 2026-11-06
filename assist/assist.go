@@ -7,7 +7,9 @@
 // holds the credential and makes every provider call itself; a client only
 // ever sends the token in, never reads it back, and sends draft context to
 // be generated from or polished. Prompt templates are the hub's, not the
-// client's.
+// client's. It also holds the AI draft route (hub ADR-0110 to ADR-0112,
+// draft.go): POST /v1/ai/draft writes a whole document of one of six types
+// as a job the client polls, and its result waits until accepted or discarded.
 package assist
 
 import (

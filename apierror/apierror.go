@@ -112,6 +112,7 @@ const (
 	AIDraftInterrupted  = "ai_draft_interrupted"   // job — the hub restarted or was deployed while the job ran; start it again
 	AIDraftTokenCeiling = "ai_draft_token_ceiling" // job — the next call would pass the per-job token ceiling and no output had parsed
 	AIDraftTimeout      = "ai_draft_timeout"       // job — the job passed its hard deadline
+	InternalError       = "internal_error"         // job — a hub fault, not the model's: a panic in the job, or a validation error in a field the hub wrote
 	// Hub-held drafts (hub ADR-0060): /v1/namespaces/{slug}/drafts. The
 	// drafting surface (drafts, /v1/ai/*, /v1/me/ai-credential) is an
 	// enterprise-account feature (REV-448); the two 403s tell the UI which
