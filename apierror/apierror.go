@@ -98,8 +98,21 @@ const (
 	AICredentialMissing   = "ai_credential_missing"   // 412 — the caller has not stored a provider token; add one on the settings page
 	AIProviderRejected    = "ai_provider_rejected"    // 422 — the provider refused the stored token (401/403 upstream); rotate it
 	AIProviderUnavailable = "ai_provider_unavailable" // 502 — the provider errored, timed out or returned an unusable body
-	AIContextTooLarge     = "ai_context_too_large"    // 413 — request exceeds limits.MaxAIPolishRequestBytes, MaxAIPolishCurrentBytes or MaxAIReviewRequestBytes
+	AIContextTooLarge     = "ai_context_too_large"    // 413 — request exceeds limits.MaxAIPolishRequestBytes, MaxAIPolishCurrentBytes, MaxAIReviewRequestBytes, MaxAIDraftRequestBytes or MaxAIDraftAnswersBytes
 	AIRateLimited         = "ai_rate_limited"         // 429 — the caller's per-user polish budget is spent; wait a moment
+
+	// The AI draft route (hub ADR-0110, ADR-0111, ADR-0112): POST
+	// /v1/ai/draft, its job at /v1/ai/draft/{job_id}, accept and discard.
+	// Codes with a status are refusals; the others appear only as a failed
+	// job's error.code, beside the AI codes above.
+	AIDraftBusy         = "ai_draft_busy"          // 429 — the caller already has a draft job running; 503 — every draft worker on the hub is busy, retry later
+	AIDraftPending      = "ai_draft_pending"       // 409 — the caller already has an unresolved job for this namespace and type; find it with GET /v1/ai/draft, then accept or discard it
+	AIDraftNoResult     = "ai_draft_no_result"     // 409 — accept on a running or failed job, which holds no result
+	AIDraftInvalid      = "ai_draft_invalid"       // job — the model's output still failed validation after its repairs and no valid partial remained
+	AIDraftInterrupted  = "ai_draft_interrupted"   // job — the hub restarted or was deployed while the job ran; start it again
+	AIDraftTokenCeiling = "ai_draft_token_ceiling" // job — the next call would pass the per-job token ceiling and no output had parsed
+	AIDraftTimeout      = "ai_draft_timeout"       // job — the job passed its hard deadline
+	InternalError       = "internal_error"         // job — a hub fault, not the model's: a panic in the job, or a validation error in a field the hub wrote
 	// Hub-held drafts (hub ADR-0060): /v1/namespaces/{slug}/drafts. The
 	// drafting surface (drafts, /v1/ai/*, /v1/me/ai-credential) is an
 	// enterprise-account feature (REV-448); the two 403s tell the UI which
