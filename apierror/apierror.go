@@ -137,14 +137,15 @@ const (
 	// Schema check of every published body (hub ADR-0103, ADR-0115): direct
 	// writes (POST /v1/catalogs/...) and POST /v1/bundles/sync. Each body is
 	// checked against the newest patch of the Gemara minor line its
-	// metadata.gemara-version declares. The detail of every 422 names the
-	// document; a 503 means nothing was written and the same request may be
-	// retried.
+	// metadata.gemara-version declares. The detail of schema_invalid and the two
+	// gemara_version codes names the document, and descriptor_mismatch's names
+	// the blob digest and sizes. A 503 means nothing was written and the same
+	// request may be retried.
 	SchemaInvalid            = "schema_invalid"             // 422 — the body fails its declared release's schema; detail: "gemara <release> (declared <value>)" then up to 10 "<path>: <message>" lines and "(N more)"
 	GemaraVersionUnresolved  = "gemara_version_unresolved"  // 422 — metadata.gemara-version is not MAJOR.MINOR.PATCH (one leading v allowed), or names a minor line with no Gemara release
 	GemaraVersionUnsupported = "gemara_version_unsupported" // 422 — metadata.gemara-version names a line older than the hub's minimum (v1.5.0); declare 1.5.0 or later. Not retryable
-	SchemaCheckUnavailable   = "schema_check_unavailable"   // 503 — the check could not run (registry unreachable, schema fetch or evaluation capacity busy); nothing was written, retry
-	DescriptorMismatch       = "descriptor_mismatch"        // 422 — a sync or mirror bundle has a blob whose stored size or bytes differ from its descriptor
+	SchemaCheckUnavailable   = "schema_check_unavailable"   // 503 — the check could not run (registry unreachable, the declared release does not compile, or schema fetch or evaluation capacity busy); nothing was written, retry
+	DescriptorMismatch       = "descriptor_mismatch"        // 422 — a sync or mirror bundle has a blob that is missing from staging, or whose stored size or bytes differ from its descriptor
 
 	// Shared transport / drift codes.
 	CoordinateMismatch = "coordinate_mismatch" // 400 — request body repository != URL coordinate
