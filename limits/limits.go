@@ -52,6 +52,15 @@ const (
 // apierror.AIContextTooLarge before touching the provider.
 const MaxAIReviewRequestBytes = 256 << 10 // 256 KiB
 
+// MaxAIDraftRequestBytes caps the whole POST /v1/ai/draft body and
+// MaxAIDraftAnswersBytes its answers array, measured on its bytes as sent
+// (hub ADR-0110 point 1). Over either the hub answers 413
+// apierror.AIContextTooLarge before starting a job.
+const (
+	MaxAIDraftRequestBytes = MaxAIReviewRequestBytes // 256 KiB
+	MaxAIDraftAnswersBytes = 64 << 10                // 64 KiB
+)
+
 // MaxDraftBodyBytes caps the body of a hub-held draft (POST/PUT
 // /v1/namespaces/{slug}/drafts, hub ADR-0060). Over it the hub answers 413
 // apierror.DraftTooLarge and writes nothing. The body is the editor's own
