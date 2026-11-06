@@ -31,3 +31,6 @@ belong here. `README.md` is the full contract overview + package glossary — po
 - **`identity.CanonicalKeylessIdentity` output is a frozen contract.** Even a one-character change is a breaking major bump; it silently breaks every publisher's *second* release (identity mismatch on re-publish).
 - Identity strings are **opaque** — compare only, never parse. Registered-key identities are out of scope for v1.
 - Pre-v1.0.0 (v0.x). Breaking changes are signaled in GitHub release titles (`BREAKING:`), not issues — importers must watch releases.
+
+## Pull requests
+- **No binary or unreviewable files in a PR.** Every file must be reviewable as text in the diff. Archives, compiled output, generated bundles and minified files are not allowed. Test data and vendored schemas go in as plain text, with a README saying where they came from and how to regenerate them. If a PR truly needs a binary (an image or font, say), stop and ask Eddie in the Linear card before adding it.
