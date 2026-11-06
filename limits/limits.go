@@ -57,8 +57,8 @@ const MaxAIReviewRequestBytes = 256 << 10 // 256 KiB
 // (hub ADR-0110 point 1). Over either the hub answers 413
 // apierror.AIContextTooLarge before starting a job.
 const (
-	MaxAIDraftRequestBytes = MaxAIReviewRequestBytes // 256 KiB
-	MaxAIDraftAnswersBytes = 64 << 10                // 64 KiB
+	MaxAIDraftRequestBytes = 256 << 10 // 256 KiB, the review cap's value but not tied to it: hub ADR-0111's token ceiling is sized on it
+	MaxAIDraftAnswersBytes = 64 << 10  // 64 KiB
 )
 
 // MaxDraftBodyBytes caps the body of a hub-held draft (POST/PUT

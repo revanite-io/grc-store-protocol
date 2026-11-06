@@ -98,7 +98,7 @@ const (
 	AICredentialMissing   = "ai_credential_missing"   // 412 — the caller has not stored a provider token; add one on the settings page
 	AIProviderRejected    = "ai_provider_rejected"    // 422 — the provider refused the stored token (401/403 upstream); rotate it
 	AIProviderUnavailable = "ai_provider_unavailable" // 502 — the provider errored, timed out or returned an unusable body
-	AIContextTooLarge     = "ai_context_too_large"    // 413 — request exceeds limits.MaxAIPolishRequestBytes, MaxAIPolishCurrentBytes or MaxAIReviewRequestBytes
+	AIContextTooLarge     = "ai_context_too_large"    // 413 — request exceeds limits.MaxAIPolishRequestBytes, MaxAIPolishCurrentBytes, MaxAIReviewRequestBytes, MaxAIDraftRequestBytes or MaxAIDraftAnswersBytes
 	AIRateLimited         = "ai_rate_limited"         // 429 — the caller's per-user polish budget is spent; wait a moment
 
 	// The AI draft route (hub ADR-0110, ADR-0111, ADR-0112): POST

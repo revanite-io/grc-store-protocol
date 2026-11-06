@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/revanite-io/grc-store-protocol/apierror"
 	"github.com/revanite-io/grc-store-protocol/draft"
 )
 
@@ -50,12 +51,22 @@ func TestDraftJobWire(t *testing.T) {
 	if got := string(b); got != `{"state":"running","stage":"generating","attempt":0}` {
 		t.Errorf("running job = %s", got)
 	}
-	b, _ = json.Marshal(DraftJob{
+	b, err = json.Marshal(DraftJob{
 		State: DraftStatePartial, Attempt: 3, Result: json.RawMessage(`{}`),
 		Removed: []DraftRemoved{{Path: "guidelines.3", ID: "G-4", Errors: []string{"e"}}},
 		Usage:   &DraftUsage{InputTokens: 1, OutputTokens: 2},
 	})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if got := string(b); got != `{"state":"partial","attempt":3,"result":{},"removed":[{"path":"guidelines.3","id":"G-4","errors":["e"]}],"usage":{"input_tokens":1,"output_tokens":2}}` {
 		t.Errorf("partial job = %s", got)
+	}
+	b, err = json.Marshal(DraftJob{State: DraftStateFailed, Attempt: 1, Error: &DraftError{Code: apierror.AIDraftTimeout, Detail: "d"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := string(b); got != `{"state":"failed","attempt":1,"error":{"code":"ai_draft_timeout","detail":"d"}}` {
+		t.Errorf("failed job = %s", got)
 	}
 }
