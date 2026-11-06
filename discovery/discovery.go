@@ -37,4 +37,11 @@ type Document struct {
 	NamespaceSelfService *bool `json:"namespace_self_service"`
 	// AccessRequests is true when a person without an account may ask for one.
 	AccessRequests *bool `json:"access_requests"`
+
+	// StagingPush is true when the hub expects bundles pushed to the staging
+	// form of their repository (package staging, hub ADR-0103 point 6), and
+	// checks and promotes them on sync. A client pushes to staging only when it
+	// is true; otherwise, including a hub that omits it, it pushes to the served
+	// repository.
+	StagingPush bool `json:"staging_push,omitempty"`
 }
