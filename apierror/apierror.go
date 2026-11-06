@@ -134,6 +134,12 @@ const (
 	NamespacePersonalImmovable  = "namespace_personal_immovable"   // 422 — a personal namespace is always owned by its user and cannot be enterprise-owned
 	EnterpriseArchived          = "enterprise_archived"            // 409 — the enterprise is archived; it confers no authority and accepts no writes
 
+	// A frozen enterprise (hub ADR-0116): a subscription ended unpaid. Feature
+	// writes into it (namespaces and their content, publish, sync, drafts, the
+	// AI and convert routes, registry push) are refused; reads and account
+	// management (settings, members, invitations, CI bindings, leave) stay open.
+	EnterpriseFrozen = "enterprise_frozen" // 403 — the enterprise is frozen until payment resumes; detail: "enterprise is frozen"
+
 	// Deprecated: never emitted since hub ADR-0069 — a user may hold spans in
 	// any number of enterprises, so "already managed elsewhere" is no longer a
 	// conflict. Use EnterpriseUserAlreadyMember. Kept so v0.23.0 importers compile.
