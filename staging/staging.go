@@ -37,16 +37,5 @@ func Repository(served string) (string, bool) {
 // with "staging" in any other position is an ordinary served repository.
 func IsStaging(repo string) bool {
 	segs := strings.Split(repo, "/")
-	return len(segs) >= 3 && segs[0] != "" && segs[1] == Segment
-}
-
-// Served returns the served repository a staging repository stands for:
-// "<ns>/staging/<rest>" gives "<ns>/<rest>". ok is false when repo is not a
-// staging repository.
-func Served(repo string) (string, bool) {
-	if !IsStaging(repo) {
-		return "", false
-	}
-	ns, rest, _ := strings.Cut(repo, "/")
-	return ns + "/" + strings.TrimPrefix(rest, Segment+"/"), true
+	return len(segs) >= 3 && segs[0] != "" && segs[1] == Segment && segs[2] != ""
 }

@@ -30,9 +30,6 @@ func TestRepository(t *testing.T) {
 			if !IsStaging(got) {
 				t.Errorf("IsStaging(%q) = false for Repository's own output", got)
 			}
-			if back, _ := Served(got); back != c.served {
-				t.Errorf("Served(%q) = %q, want %q", got, back, c.served)
-			}
 		}
 	}
 }
@@ -42,6 +39,7 @@ func TestIsStaging(t *testing.T) {
 		"acme/staging/baseline": true,
 		"acme/staging/a/b":      true,
 		"acme/staging":          false,
+		"acme/staging/":         false,
 		"staging/acme/baseline": false,
 		"acme/baseline/staging": false,
 		"acme/plugins/staging":  false,
@@ -53,9 +51,6 @@ func TestIsStaging(t *testing.T) {
 	for repo, want := range cases {
 		if got := IsStaging(repo); got != want {
 			t.Errorf("IsStaging(%q) = %v, want %v", repo, got, want)
-		}
-		if _, ok := Served(repo); ok != want {
-			t.Errorf("Served(%q) ok = %v, want %v", repo, ok, want)
 		}
 	}
 }

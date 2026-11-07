@@ -21,7 +21,7 @@ belong here. `README.md` is the full contract overview + package glossary — po
 - `refurl` — the "does this url name a hub artifact" rule (`Parse` → namespace/id/version, `IsGrcStoreHost`); hub index, grcli and the frontend mirror all follow its table test
 - `mediatype` — OCI media types (plugin config/binary, Sigstore bundle)
 - `pluginspec` — plugin config-blob schema · `registrytoken` — `GET /v2/token` response
-- `staging` — the staging-repository rule (`Repository`, `IsStaging`, `Served`) and discovery's `staging_push` (hub ADR-0103 point 6)
+- `staging` — the staging-repository rule (`Repository`, `IsStaging`) and discovery's `staging_push` (hub ADR-0103 point 6)
 - `draft` — hub-held drafts: `Draft`/`SaveRequest`/`ListResponse` for `/v1/namespaces/{slug}/drafts`, the draftable types (aliased by `assist`), `ValidBody` (hub ADR-0060)
 - `targetgroup` — target groups: `Group`/`UpsertRequest`/`ListResponse`/`View` for `/v1/targets/{ns}/groups[/{slug}]`, `ReservedTargetID` (hub ADR-0091)
 - `assist` — AI-assisted drafting: credential request/status, polish and review request/response shapes, per-field and per-kind context shapes; review kinds and their per-type allow list live in `assist/assist.go` (hub ADR-0059); the AI draft route's request, job and list shapes and its type→upstream table in `assist/draft.go` (hub ADR-0110–0112)

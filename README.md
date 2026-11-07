@@ -23,7 +23,7 @@ drift between independently-maintained copies.
 | `pluginspec` | The signed plugin config-blob schema. |
 | `discovery` | The `/.well-known/grc-store-configuration` document. |
 | `registrytoken` | The `GET /v2/token` response. |
-| `staging` | The staging-repository rule (`Repository`, `IsStaging`, `Served`): publishers push to `<ns>/staging/<rest>` when discovery sets `staging_push`, and the hub promotes a checked bundle into `<ns>/<rest>` (hub ADR-0103 point 6). |
+| `staging` | The staging-repository rule (`Repository`, `IsStaging`): publishers push to `<ns>/staging/<rest>` when discovery sets `staging_push`, and the hub promotes a checked bundle into `<ns>/<rest>` (hub ADR-0103 point 6). |
 | `syncapi` | The sync request + response shapes. |
 | `limits` | Producer-facing size limits. |
 | `slug` | **The** hub coordinate slug rule (`Slugify`/`IsSlug`, a byte-for-byte port of the hub's) plus the EvaluationLog results coordinate helpers (`EvaluationLogRepository`, `EvaluationLogVersion`, `IsHubPluginCoordinate`). **`Slugify`'s output is frozen contract.** |
