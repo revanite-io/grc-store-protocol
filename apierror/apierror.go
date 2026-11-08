@@ -32,6 +32,7 @@ const (
 	TagVersionMismatch         = "tag_version_mismatch"         // 422 — config version != index tag
 	MalformedIndex             = "malformed_index"              // 422 — bad child media types / missing layers / empty evaluates
 	RegistryNotAllowed         = "registry_not_allowed"         // 400 — repository not the <ns>/plugins/<id> shape
+	BodyTooLarge               = "body_too_large"               // 413 — a synced bundle is over its cap: limits.MaxPluginVersionBytes or MaxPluginVersionBlobs for a plugin version (hub ADR-0120), or the catalog bundle cap
 
 	// Catalog publish / sync path (ADR-0045). The catalog analogue of the
 	// plugin codes above: the hub verifies a catalog bundle's Sigstore

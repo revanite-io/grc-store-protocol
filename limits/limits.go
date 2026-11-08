@@ -16,7 +16,7 @@ const MaxPluginBlobBytes = 4 << 20 // 4 MiB
 // MaxPluginVersionBytes and MaxPluginVersionBlobs cap one plugin version at
 // promotion (hub ADR-0120 point 5): the distinct blobs its index and child
 // manifests name, counted once each, binaries included. Over either the hub
-// answers 413 `body_too_large` before copying anything.
+// answers 413 apierror.BodyTooLarge before copying anything.
 const (
 	MaxPluginVersionBytes = 512 << 20 // 512 MiB
 	MaxPluginVersionBlobs = 64
