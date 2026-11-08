@@ -13,6 +13,15 @@ package limits
 // layer is not bounded by this — the hub digest-pins it but does not read it.
 const MaxPluginBlobBytes = 4 << 20 // 4 MiB
 
+// MaxPluginVersionBytes and MaxPluginVersionBlobs cap one plugin version at
+// promotion (hub ADR-0120 point 5): the distinct blobs its index and child
+// manifests name, counted once each, binaries included. Over either the hub
+// answers 413 `body_too_large` before copying anything.
+const (
+	MaxPluginVersionBytes = 512 << 20 // 512 MiB
+	MaxPluginVersionBlobs = 64
+)
+
 // MaxEvaluationLogBundleBytes is the hub's ingest cap on the whole pushed
 // EvaluationLog bundle (manifest + every layer the hub reads) on
 // POST /v1/bundles/sync. A results publish whose bundle exceeds it is
